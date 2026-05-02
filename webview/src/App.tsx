@@ -162,13 +162,13 @@ function App() {
             <option value="text">Text</option>
           </select>
           <button className="icon-button" onClick={handleClip} title="Add Clip">
-            <i className="codicon codicon-add"></i>
+            <span className="codicon codicon-add"></span>
           </button>
           <button className="icon-button" onClick={handleExport} title="Export Markdown">
-            <i className="codicon codicon-export"></i>
+            <span className="codicon codicon-export"></span>
           </button>
           <button className="icon-button" onClick={handleReload} title="Reload Deck">
-            <i className="codicon codicon-refresh"></i>
+            <span className="codicon codicon-refresh"></span>
           </button>
 
         </div>
