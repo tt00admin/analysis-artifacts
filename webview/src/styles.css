@@ -204,6 +204,126 @@ h1 {
   gap: 14px;
 }
 
+/* Carousel container for recent clips grouped by type */
+.carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding-bottom: 8px;
+  scroll-snap-type: x mandatory;
+}
+
+/* Carousel item - compact preview size */
+.carousel-item {
+  flex: 0 0 200px;
+  scroll-snap-align: start;
+  max-height: 220px;
+  overflow: hidden;
+}
+
+/* Adjust clip card inside carousel for preview */
+.carousel-item .clip-card {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+}
+
+/* Clip content area - compact preview */
+.carousel-item .clip-content {
+  max-height: 130px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Show scrollbar on hover for content */
+.carousel-item .clip-card:hover .clip-content {
+  overflow: auto;
+}
+
+/* Image sizing for carousel preview - more compact */
+.carousel-item .clip-image-container img {
+  max-width: 100%;
+  max-height: 100px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Clip title in carousel - smaller and truncated */
+.carousel-item .clip-title {
+  font-size: 11px;
+  line-height: 1.2;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Truncate text content in carousel preview */
+.carousel-item .clip-content pre {
+  max-height: 100px;
+  overflow: hidden;
+  font-size: 11px;
+}
+
+/* Hide less important elements in carousel preview */
+.carousel-item .clip-memo,
+.carousel-item .clip-tags,
+.carousel-item .clip-footer {
+  display: none;
+}
+
+/* Show footer on hover */
+.carousel-item .clip-card:hover .clip-memo,
+.carousel-item .clip-card:hover .clip-tags,
+.carousel-item .clip-card:hover .clip-footer {
+  display: block;
+}
+
+/* Hide actions by default in carousel, show on hover */
+.carousel-item .clip-actions {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.carousel-item .clip-card:hover .clip-actions {
+  opacity: 1;
+}
+
+/* Adjust clip type badge in carousel */
+.carousel-item .clip-type {
+  font-size: 10px;
+  padding: 1px 5px;
+}
+
+/* Hide scrollbar for a cleaner look */
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Carousel section styling */
+.carousel-section {
+  display: grid;
+  gap: 8px;
+}
+
+.carousel-type-header {
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--vscode-foreground);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+/* Ensure each clip card aligns nicely within the carousel */
+.carousel-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
 .deck-section {
   display: grid;
   gap: 8px;

@@ -38,44 +38,93 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage }: DeckProp
   const getDeckIndex = (clipId: string) => clips.findIndex((item) => item.id === clipId);
 
   const renderClipList = (clipList: Clip[], isPinned: boolean = false) => {
-    return (
-      <section className={isPinned ? "deck-section pinned-section" : "deck-section recent-section"}>
-        <div className="section-header">
-          <div>
-            <h2>{isPinned ? 'Pinned' : 'Recent Clips'}</h2>
-            <p>{isPinned ? 'Keep key outputs visible.' : 'Saved outputs in timeline order.'}</p>
+    if (isPinned) {
+      return (
+        <section className="deck-section pinned-section">
+          <div className="section-header">
+            <div>
+              <h2>Pinned</h2>
+              <p>Keep key outputs visible.</p>
+            </div>
+            <span className="count-badge">{clipList.length}</span>
           </div>
-          <span className="count-badge">{clipList.length}</span>
-        </div>
-        {clipList.length === 0 && (
-          <div className="empty-state">
-            {isPinned ? 'Pin important clips to keep them here.' : 'Add a notebook cell output to start the deck.'}
-          </div>
-        )}
-        {clipList.map((clip) => {
-          const deckIndex = getDeckIndex(clip.id);
+          {clipList.length === 0 && (
+            <div className="empty-state">
+              Pin important clips to keep them here.
+            </div>
+          )}
+          {clipList.map((clip) => {
+            const deckIndex = getDeckIndex(clip.id);
+            return (
+              <div
+                key={clip.id}
+                draggable
+                onDragStart={() => handleDragStart(deckIndex)}
+                onDragEnter={() => handleDragEnter(deckIndex)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                style={{ cursor: 'grab' }}
+              >
+                <ClipCard
+                  clip={clip}
+                  onDelete={onDelete}
+                  onTogglePin={onTogglePin}
+                  onOpenImage={onOpenImage}
+                />
+              </div>
+            );
+          })}
+        </section>
+      );
+    } else {
+      const groupedByType = clipList.reduce((acc, clip) => {
+        const type = clip.type;
+        if (!acc[type]) acc[type] = [];
+        acc[type].push(clip);
+        return acc;
+      }, {} as Record<string, Clip[]>);
 
-          return (
-          <div
-            key={clip.id}
-            draggable
-            onDragStart={() => handleDragStart(deckIndex)}
-            onDragEnter={() => handleDragEnter(deckIndex)}
-            onDragEnd={handleDragEnd}
-            onDragOver={(e) => e.preventDefault()}
-            style={{ cursor: 'grab' }}
-          >
-            <ClipCard
-              clip={clip}
-              onDelete={onDelete}
-              onTogglePin={onTogglePin}
-              onOpenImage={onOpenImage}
-            />
+      const typeLabels: Record<string, string> = {
+        image: 'Image',
+        html: 'HTML',
+        dataframe: 'DataFrame',
+        text: 'Text',
+      };
+
+      return (
+        <section className="deck-section recent-section">
+          <div className="section-header">
+            <div>
+              <h2>Recent Clips</h2>
+              <p>Saved outputs in timeline order.</p>
+            </div>
+            <span className="count-badge">{clipList.length}</span>
           </div>
-          );
-        })}
-      </section>
-    );
+          {clipList.length === 0 && (
+            <div className="empty-state">
+              Add a notebook cell output to start the deck.
+            </div>
+          )}
+          {Object.entries(groupedByType).map(([type, typeClips]) => (
+            <div key={type} className="carousel-section">
+              <h3 className="carousel-type-header">{typeLabels[type] || type} ({typeClips.length})</h3>
+              <div className="carousel">
+                {typeClips.map((clip) => (
+                  <div key={clip.id} className="carousel-item">
+                    <ClipCard
+                      clip={clip}
+                      onDelete={onDelete}
+                      onTogglePin={onTogglePin}
+                      onOpenImage={onOpenImage}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      );
+    }
   };
 
   return (
