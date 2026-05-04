@@ -167,7 +167,7 @@ function App() {
           <button className="icon-button" onClick={handleExport} title="Export Markdown">
             <i className="codicon codicon-export"></i>
           </button>
-          <button className="icon-button" onClick={handleReload} title="Reload Deck">
+          <button className="primary-button" onClick={handleReload} title="Reload Deck">
             <i className="codicon codicon-refresh"></i>
           </button>
 
