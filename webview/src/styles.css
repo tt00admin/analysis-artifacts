@@ -592,7 +592,8 @@ h1 {
 }
 
 .edit-field textarea {
-  min-height: 60px;
+  min-height: 40px;
+  height: 40px;
   resize: vertical;
 }
 

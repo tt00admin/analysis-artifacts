@@ -156,7 +156,6 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
     <div className={`clip-card ${clip.pinned ? 'pinned' : ''}`} onClick={handleClick}>
       <div className="clip-header">
         <span className="drag-handle" style={{ cursor: 'grab', marginRight: '4px', fontSize: '14px' }}>☰</span>
-        {!isCarousel && <span className="clip-type">{clip.type}</span>}
         <div className="clip-actions">
           <button
             className="icon-button"
