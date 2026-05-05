@@ -1,40 +1,23 @@
-import { Clip } from '../types/index.js';
+import { Clip, SearchFilters } from '../types/index.js';
 
+/**
+ * クリップ検索サービス
+ */
 export class SearchService {
-  // クリップを検索・フィルタリング
-  static searchClips(
+  /**
+   * クリップを検索・フィルタリング
+   */
+  searchClips(
     clips: Clip[],
     query: string,
-    filters?: {
-      type?: string;
-      tags?: string[];
-      dateFrom?: number;
-      dateTo?: number;
-      notebookFileName?: string; // 追加：ファイル名フィルター
-    }
+    filters?: SearchFilters
   ): Clip[] {
     let results = [...clips];
 
-     // テキスト検索
-     if (query) {
-       const lowerQuery = query.toLowerCase();
-       results = results.filter((clip: Clip) => {
-         const titleMatch = clip.title?.toLowerCase().includes(lowerQuery);
-         const memoMatch = clip.memo?.toLowerCase().includes(lowerQuery);
-         const tagMatch = clip.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery));
-         const codeMatch = clip.codeSnippet?.toLowerCase().includes(lowerQuery);
-         // コンテンツのテキスト検索
-         let contentMatch = false;
-         if (clip.content) {
-           if ('textContent' in clip.content && clip.content.textContent) {
-             contentMatch = clip.content.textContent.toLowerCase().includes(lowerQuery);
-           } else if ('htmlContent' in clip.content && clip.content.htmlContent) {
-             contentMatch = clip.content.htmlContent.toLowerCase().includes(lowerQuery);
-           }
-         }
-         return titleMatch || memoMatch || tagMatch || codeMatch || contentMatch;
-       });
-     }
+    // テキスト検索
+    if (query) {
+      results = this.filterByTextSearch(results, query);
+    }
 
     // タイプフィルター
     if (filters?.type) {
@@ -43,9 +26,7 @@ export class SearchService {
 
     // タグフィルター
     if (filters?.tags && filters.tags.length > 0) {
-      results = results.filter((clip: Clip) =>
-        filters.tags!.some((tag: string) => clip.tags.includes(tag))
-      );
+      results = this.filterByTags(results, filters.tags);
     }
 
     // 日付範囲フィルター
@@ -56,27 +37,63 @@ export class SearchService {
       results = results.filter((clip: Clip) => clip.timestamp <= filters.dateTo!);
     }
 
-    // ファイル名フィルター（notebookUriからファイル名を抽出してマッチ）
+    // ファイル名フィルター
     if (filters?.notebookFileName) {
-      const lowerFileName = filters.notebookFileName.toLowerCase();
-      results = results.filter((clip: Clip) => {
-        if (!clip.source?.notebookUri) return false;
-        try {
-          const uri = clip.source.notebookUri;
-          // URIからファイル名を抽出
-          const fileName = uri.split('/').pop()?.toLowerCase() || '';
-          return fileName.includes(lowerFileName);
-        } catch {
-          return false;
-        }
-      });
+      results = this.filterByNotebookFileName(results, filters.notebookFileName);
     }
 
     return results;
   }
 
-  // タグの一覧を取得
-  static getAllTags(clips: Clip[]): string[] {
+  private filterByTextSearch(clips: Clip[], query: string): Clip[] {
+    const lowerQuery = query.toLowerCase();
+    return clips.filter((clip: Clip) => {
+      const titleMatch = clip.title?.toLowerCase().includes(lowerQuery);
+      const memoMatch = clip.memo?.toLowerCase().includes(lowerQuery);
+      const tagMatch = clip.tags.some((tag: string) => tag.toLowerCase().includes(lowerQuery));
+      const codeMatch = clip.codeSnippet?.toLowerCase().includes(lowerQuery);
+      const contentMatch = this.matchContent(clip, lowerQuery);
+      return titleMatch || memoMatch || tagMatch || codeMatch || contentMatch;
+    });
+  }
+
+  private matchContent(clip: Clip, lowerQuery: string): boolean {
+    if (!clip.content) {
+      return false;
+    }
+    if ('textContent' in clip.content && clip.content.textContent) {
+      return clip.content.textContent.toLowerCase().includes(lowerQuery);
+    }
+    if ('htmlContent' in clip.content && clip.content.htmlContent) {
+      return clip.content.htmlContent.toLowerCase().includes(lowerQuery);
+    }
+    return false;
+  }
+
+  private filterByTags(clips: Clip[], tags: string[]): Clip[] {
+    return clips.filter((clip: Clip) =>
+      tags.some((tag: string) => clip.tags.includes(tag))
+    );
+  }
+
+  private filterByNotebookFileName(clips: Clip[], notebookFileName: string): Clip[] {
+    const lowerFileName = notebookFileName.toLowerCase();
+    return clips.filter((clip: Clip) => {
+      if (!clip.source?.notebookUri) return false;
+      try {
+        const uri = clip.source.notebookUri;
+        const fileName = uri.split('/').pop()?.toLowerCase() || '';
+        return fileName.includes(lowerFileName);
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
+   * タグの一覧を取得
+   */
+  getAllTags(clips: Clip[]): string[] {
     const tagSet = new Set<string>();
     clips.forEach((clip: Clip) => {
       clip.tags.forEach((tag: string) => tagSet.add(tag));
@@ -84,13 +101,17 @@ export class SearchService {
     return Array.from(tagSet).sort();
   }
 
-  // ピン留めされたクリップを取得
-  static getPinnedClips(clips: Clip[]): Clip[] {
+  /**
+   * ピン留めされたクリップを取得
+   */
+  getPinnedClips(clips: Clip[]): Clip[] {
     return clips.filter((clip: Clip) => clip.pinned);
   }
 
-  // 最近のクリップを取得（指定された数）
-  static getRecentClips(clips: Clip[], count: number = 10): Clip[] {
+  /**
+   * 最近のクリップを取得（指定された数）
+   */
+  getRecentClips(clips: Clip[], count: number = 10): Clip[] {
     return [...clips]
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, count);

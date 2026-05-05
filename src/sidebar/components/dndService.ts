@@ -1,9 +1,9 @@
-import { Deck, Clip } from '../../types/index.js';
-import { StorageService } from '../../storage/storageService.js';
+import { Clip } from '../../types/index.js';
 
 export class DnDService {
-  // クリップの順序を更新
-  // ピン留めクリップの順序を更新（ピン留めクリップのみを対象とする）
+  /**
+   * クリップの順序を更新（ピン留めクリップのみを対象とする）
+   */
   static reorderClips(clips: Clip[], startIndex: number, endIndex: number): Clip[] {
     // ピン留めクリップと未ピン留めクリップを分離
     const pinnedClips = clips.filter(clip => clip.pinned);
@@ -32,21 +32,19 @@ export class DnDService {
     return [...updatedPinned, ...unpinnedClips];
   }
 
-  // ピン留め状態の変更
+  /**
+   * ピン留め状態の変更
+   */
   static togglePin(clips: Clip[], clipId: string): Clip[] {
     return clips.map((clip: Clip) =>
        clip.id === clipId ? { ...clip, pinned: !clip.pinned } : clip
     );
   }
 
-  // クリップの削除
+  /**
+   * クリップの削除
+   */
   static deleteClip(clips: Clip[], clipId: string): Clip[] {
     return clips.filter((clip: Clip) => clip.id !== clipId);
-  }
-
-  // デッキの保存（ストレージサービスを使用）
-  static async saveDeck(deck: Deck, storageService: StorageService): Promise<void> {
-    deck.lastUpdated = Date.now();
-    await storageService.saveDeck(deck);
   }
 }

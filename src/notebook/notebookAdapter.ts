@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { Clip } from '../types/index.js';
 
 export interface INotebookAdapter {
   getActiveCell(): vscode.NotebookCell | undefined;
@@ -42,11 +41,13 @@ export class NotebookAdapter implements INotebookAdapter {
       // Find and scroll to the cell
       const cellIndex = document.getCells().findIndex(cell => cell.document.uri.toString() === cellId);
       if (cellIndex >= 0) {
-        // Note: Direct scrolling to a specific cell may require editor API extensions
-        // For now, we'll just reveal the cell range
-         const cell = document.cellAt(cellIndex);
-         const range = new vscode.NotebookRange(cellIndex, cellIndex);
-         (editor as any).revealRange(range, (vscode as any).NotebookEditorRevealType?.InCenter || 1);
+        const range = new vscode.NotebookRange(cellIndex, cellIndex);
+        // Use type assertion for revealRange which is part of NotebookEditor interface
+        // but may not be in all vscode API versions
+        const editorImpl = editor as vscode.NotebookEditor & { revealRange?(range: vscode.NotebookRange, revealType?: number): void };
+        if (editorImpl.revealRange) {
+          editorImpl.revealRange(range, vscode.NotebookEditorRevealType.InCenter);
+        }
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to jump to cell: ${error}`);

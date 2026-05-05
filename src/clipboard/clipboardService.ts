@@ -5,11 +5,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { NotebookAdapter } from '../notebook/notebookAdapter.js';
 import { MarimoAdapter } from '../notebook/marimoAdapter.js';
 import { INotebookAdapter } from '../notebook/notebookAdapter.js';
-import { escapeHtml } from '../utils/htmlEscape.js';
+import { MimeTypeDetector } from './mimeTypeDetector.js';
+import { ImageAnalyzer } from './imageAnalyzer.js';
+import { HtmlGenerator } from './htmlGenerator.js';
 
 export class ClipboardService {
   private notebookAdapter: INotebookAdapter;
   private marimoAdapter: INotebookAdapter;
+  private mimeTypeDetector: MimeTypeDetector;
+  private imageAnalyzer: ImageAnalyzer;
+  private htmlGenerator: HtmlGenerator;
 
   constructor(
     private context: vscode.ExtensionContext,
@@ -17,6 +22,9 @@ export class ClipboardService {
   ) {
     this.notebookAdapter = new NotebookAdapter();
     this.marimoAdapter = new MarimoAdapter();
+    this.mimeTypeDetector = new MimeTypeDetector();
+    this.imageAnalyzer = new ImageAnalyzer();
+    this.htmlGenerator = new HtmlGenerator();
   }
 
   async clipActiveCell(cell?: vscode.NotebookCell): Promise<string | undefined> {
@@ -130,7 +138,7 @@ export class ClipboardService {
     console.log(`All cell outputs MIME types: ${allMimeTypes.join(', ')}`);
     console.log(`Number of outputs: ${outputs.length}`);
 
-    const candidates: Array<{ mimeType: string; data: Uint8Array; priority: number; outputIndex: number; itemIndex: number }> = [];
+    const candidates: Array<{ mimeType: string; data: Uint8Array; outputIndex: number; itemIndex: number }> = [];
     for (const [outputIndex, output] of outputs.entries()) {
       if (!output.items || output.items.length === 0) {
         continue;
@@ -141,22 +149,14 @@ export class ClipboardService {
           console.log(`MIME type ${item.mime}: unsupported or empty data`);
           continue;
         }
-        const priority = this.getMimePriority(item.mime, data);
+        const priority = this.mimeTypeDetector.getPriority(item.mime, data);
         if (priority > 0) {
-          candidates.push({ mimeType: item.mime, data, priority, outputIndex, itemIndex });
+          candidates.push({ mimeType: item.mime, data, outputIndex, itemIndex });
         }
       }
     }
 
-    const selected = candidates.sort((a, b) => {
-      if (b.priority !== a.priority) {
-        return b.priority - a.priority;
-      }
-      if (b.outputIndex !== a.outputIndex) {
-        return b.outputIndex - a.outputIndex;
-      }
-      return b.itemIndex - a.itemIndex;
-    })[0];
+    const selected = this.mimeTypeDetector.selectBestCandidate(candidates);
 
     if (!selected) {
       return undefined;
@@ -168,11 +168,11 @@ export class ClipboardService {
     if (mimeType.startsWith('image/')) {
       clip.type = 'image';
       const base64 = Buffer.from(data).toString('base64');
-      const ext = mimeType.split('/')[1] || 'png';
+      const ext = this.imageAnalyzer.getExtension(mimeType);
       const filename = `${clipId}.${ext}`;
       const imagePath = await this.storageService.saveImage(base64, filename);
       clip.content = { imagePath, mimeType };
-      const dimensions = this.getImageDimensions(data);
+      const dimensions = this.imageAnalyzer.getDimensions(data);
       if (dimensions) {
         clip.metadata = { ...clip.metadata, dimensions };
       }
@@ -184,15 +184,15 @@ export class ClipboardService {
     } else if (mimeType === 'application/vnd.dataresource+json') {
       clip.type = 'html';
       const json = Buffer.from(data).toString('utf-8');
-      clip.content = { htmlContent: this.dataResourceToHtml(json), mimeType };
+      clip.content = { htmlContent: this.htmlGenerator.dataResourceToHtml(json), mimeType };
       console.log('Captured data resource table');
     } else if (mimeType === 'application/vnd.dataframe+json') {
       clip.type = 'dataframe';
-      clip.content = { textContent: this.prettyJson(data), mimeType };
+      clip.content = { textContent: this.htmlGenerator.prettyJson(data), mimeType };
       console.log('Captured DataFrame');
     } else if (mimeType === 'application/json') {
       clip.type = 'text';
-      clip.content = { textContent: this.prettyJson(data), mimeType };
+      clip.content = { textContent: this.htmlGenerator.prettyJson(data), mimeType };
       console.log(`Captured JSON as text: ${mimeType}`);
     } else {
       clip.type = 'text';
@@ -216,107 +216,7 @@ export class ClipboardService {
     return undefined;
   }
 
-  private getMimePriority(mimeType: string, data: Uint8Array): number {
-    const text = Buffer.from(data).toString('utf-8');
-    const isStdoutStderr = mimeType === 'application/vnd.code.notebook.stdout' ||
-      mimeType === 'application/vnd.code.notebook.stderr' ||
-      mimeType === 'application/x.notebook.stdout' ||
-      mimeType === 'application/x.notebook.stderr';
-
-    if (mimeType.startsWith('image/')) {
-      return 100;
-    }
-    if (mimeType === 'text/html') {
-      return 90;
-    }
-    if (mimeType === 'application/vnd.dataresource+json') {
-      return 85;
-    }
-    if (mimeType === 'application/vnd.dataframe+json') {
-      return 80;
-    }
-    if (mimeType === 'application/json') {
-      return 50;
-    }
-    if (mimeType === 'text/plain') {
-      return text.trim().length > 0 ? 30 : 0;
-    }
-    if (mimeType.startsWith('text/')) {
-      return text.trim().length > 0 ? 25 : 0;
-    }
-    if (isStdoutStderr) {
-      return text.trim().length > 0 ? 10 : 0;
-    }
-    return text.trim().length > 0 ? 1 : 0;
-  }
-
-  private prettyJson(data: Uint8Array): string {
-    const text = Buffer.from(data).toString('utf-8');
-    try {
-      return JSON.stringify(JSON.parse(text), null, 2);
-    } catch {
-      return text;
-    }
-  }
-
-  private dataResourceToHtml(json: string): string {
-    try {
-      const parsed = JSON.parse(json);
-      const fields = parsed.schema?.fields ?? [];
-      const rows = Array.isArray(parsed.data) ? parsed.data : [];
-      const fieldNames = fields
-        .map((field: { name?: string }) => field.name)
-        .filter((name: string | undefined): name is string => typeof name === 'string' && name !== 'index');
-      const columns: string[] = fieldNames.length > 0
-        ? fieldNames
-        : Object.keys(rows[0] ?? {}).filter((name) => name !== 'index');
-
-      if (columns.length === 0) {
-        return `<pre>${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-      }
-
-      const header = columns.map((column: string) => `<th>${escapeHtml(column)}</th>`).join('');
-      const body = rows.map((row: Record<string, unknown>) => {
-        const cells = columns.map((column: string) => `<td>${escapeHtml(String(row[column] ?? ''))}</td>`).join('');
-        return `<tr>${cells}</tr>`;
-      }).join('');
-
-      return `<table class="datadeck-table"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
-    } catch {
-      return `<pre>${escapeHtml(json)}</pre>`;
-    }
-  }
-
-
   private associateCode(cell: vscode.NotebookCell): string | undefined {
     return cell.document?.getText();
-  }
-
-  private getImageDimensions(imageData: Uint8Array): { width: number; height: number } | undefined {
-    try {
-      // PNG: bytes 16-23 contain width and height (big-endian)
-      if (imageData.length > 24 && imageData[0] === 0x89 && imageData[1] === 0x50 &&
-          imageData[2] === 0x4E && imageData[3] === 0x47) {
-        const width = (imageData[16] << 24) | (imageData[17] << 16) | (imageData[18] << 8) | imageData[19];
-        const height = (imageData[20] << 24) | (imageData[21] << 16) | (imageData[22] << 8) | imageData[23];
-        return { width, height };
-      }
-      // JPEG: Look for SOF0 (0xFFC0) segment
-      if (imageData.length > 4 && imageData[0] === 0xFF && imageData[1] === 0xD8) {
-        let i = 2;
-        while (i < imageData.length - 9) {
-          if (imageData[i] === 0xFF && (imageData[i + 1] === 0xC0 || imageData[i + 1] === 0xC2)) {
-            const height = (imageData[i + 5] << 8) | imageData[i + 6];
-            const width = (imageData[i + 7] << 8) | imageData[i + 8];
-            return { width, height };
-          }
-          const segmentLen = (imageData[i + 2] << 8) | imageData[i + 3];
-          i += 2 + segmentLen;
-        }
-      }
-    } catch (e) {
-      // Ignore dimension parsing errors
-    }
-    return undefined;
   }
 }

@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
 import { INotebookAdapter } from './notebookAdapter.js';
 
+/**
+ * Marimoファイル用のNotebookAdapter実装
+ * marimoはPythonファイルとして扱われるため、標準のNotebookAdapterとは異なります
+ */
 export class MarimoAdapter implements INotebookAdapter {
   getActiveCell(): vscode.NotebookCell | undefined {
     // marimoはPythonファイルとして扱われるため、アクティブなエディタから取得
@@ -53,27 +57,50 @@ export class MarimoAdapter implements INotebookAdapter {
     }
   }
 
-  private createMockCell(document: vscode.TextDocument, line: number): vscode.NotebookCell {
-    // 簡易的なモックセルを作成
-    // 実際のNotebookCellインターフェースに合わせて実装
+  private createMockCell(document: vscode.TextDocument, _line: number): vscode.NotebookCell {
+    // marimoは標準のNotebookCellを提供しないため、モックオブジェクトを作成
+    // これはmarimoファイル内での作業時に限る
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockNotebook: any = {
+      uri: document.uri,
+      notebookType: 'marimo',
+      version: '1.0.0',
+      isDirty: false,
+      isUntitled: false,
+      metadata: {},
+      cells: [],
+      getCells: () => [],
+      cellAt: () => this.createMinimalCell(document, 0),
+      appendCell: () => this.createMinimalCell(document, 0),
+      deleteCell: () => {},
+      insertCell: () => this.createMinimalCell(document, 0),
+      moveCell: () => {},
+    };
+
     return {
       document,
-      notebook: {
-        uri: document.uri,
-        getCells: () => [{
-          document,
-          notebook: { uri: document.uri } as any,
-          index: 0,
-          kind: vscode.NotebookCellKind.Code,
-          outputs: [],
-          executionSummary: undefined
-        }],
-        cellAt: () => ({ document, notebook: { uri: document.uri } as any } as vscode.NotebookCell)
-      } as any,
+      notebook: mockNotebook,
       index: 0,
       kind: vscode.NotebookCellKind.Code,
       outputs: [],
-      executionSummary: undefined
-    } as unknown as vscode.NotebookCell;
+      executionSummary: undefined,
+      metadata: {}
+    };
+  }
+
+  private createMinimalCell(document: vscode.TextDocument, index: number): vscode.NotebookCell {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockNotebook: any = {
+      uri: document.uri,
+    };
+    return {
+      document,
+      notebook: mockNotebook,
+      index,
+      kind: vscode.NotebookCellKind.Code,
+      outputs: [],
+      executionSummary: undefined,
+      metadata: {}
+    };
   }
 }

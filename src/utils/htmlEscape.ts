@@ -16,18 +16,3 @@ export function escapeHtml(text: string): string {
     .replace(/"/g, '\u0022')
     .replace(/'/g, '\u0027');
 }
-
-/**
- * HTML特殊文字をデコードする（アンエスケープ）
- * @param text アンエスケープ対象の文字列
- * @returns アンエスケープされた文字列
- */
-export function unescapeHtml(text: string): string {
-  return text
-    .replace(/\u0026amp;/gi, '\u0026')
-    .replace(/\u0026lt;/gi, '\u003C')
-    .replace(/\u0026gt;/gi, '\u003E')
-    .replace(/\u0026quot;/gi, '\u0022')
-    .replace(/\u0026#39;/gi, '\u0027')
-    .replace(/\u0026#x27;/gi, '\u0027');
-}
