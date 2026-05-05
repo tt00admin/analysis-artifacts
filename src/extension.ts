@@ -25,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
     // コマンド登録
     const clipOutputCommand = vscode.commands.registerCommand('datadeck.clipOutput', async (cell?: vscode.NotebookCell) => {
       await clipboardService.clipActiveCell(cell);
+      await sidebarProvider.refreshDeck();
     });
 
     const exportMarkdownCommand = vscode.commands.registerCommand('datadeck.exportMarkdown', async () => {

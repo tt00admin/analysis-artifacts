@@ -91,7 +91,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     switch (message.type) {
       case 'clipActiveCell':
         await this.clipboardService.clipActiveCell();
-        this._refreshDeck();
+        this.refreshDeck();
         break;
       case 'requestDeck':
         await this._sendDeck();
@@ -110,7 +110,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       case 'togglePin':
         if (message.clipId) {
           await this._togglePin(message.clipId);
-          this._refreshDeck();
+          this.refreshDeck();
         }
         break;
       case 'jumpToCell':
@@ -121,7 +121,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       case 'reorderClips':
         if (message.startIndex !== undefined && message.endIndex !== undefined) {
           await this._reorderClips(message.startIndex, message.endIndex);
-          this._refreshDeck();
+          this.refreshDeck();
         }
         break;
       case 'openImage':
@@ -137,13 +137,13 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       case 'reorderRecentClips':
         if (message.clipType && message.startIndex !== undefined && message.endIndex !== undefined) {
           await this._reorderRecentClips(message.clipType, message.startIndex, message.endIndex);
-          this._refreshDeck();
+          this.refreshDeck();
         }
         break;
       case 'updateClip':
         if (message.clipId) {
           await this._updateClip(message.clipId, message.updates ?? {});
-          this._refreshDeck();
+          this.refreshDeck();
         }
         break;
     }
@@ -205,10 +205,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     if (clip) {
       await this.storageService.deleteClip(clip);
     }
-    this._refreshDeck();
+    this.refreshDeck();
   }
 
-  private async _refreshDeck(): Promise<void> {
+  public async refreshDeck(): Promise<void> {
     await this._sendDeck();
   }
 
@@ -257,7 +257,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       console.error('Failed to reorder pinned clips:', error);
       vscode.window.showErrorMessage(`Failed to reorder pinned clips: ${error instanceof Error ? error.message : error}. The deck state has been restored.`);
       // deckを再読み込みして、前端の状態とストレージを一致させる
-      await this._refreshDeck();
+      await this.refreshDeck();
     }
   }
 
