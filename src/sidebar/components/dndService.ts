@@ -34,14 +34,14 @@ export class DnDService {
 
   // ピン留め状態の変更
   static togglePin(clips: Clip[], clipId: string): Clip[] {
-    return clips.map((clip: any) => 
+    return clips.map((clip: Clip) =>
        clip.id === clipId ? { ...clip, pinned: !clip.pinned } : clip
     );
   }
 
   // クリップの削除
   static deleteClip(clips: Clip[], clipId: string): Clip[] {
-    return clips.filter((clip: any) => clip.id !== clipId);
+    return clips.filter((clip: Clip) => clip.id !== clipId);
   }
 
   // デッキの保存（ストレージサービスを使用）

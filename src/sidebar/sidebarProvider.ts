@@ -7,6 +7,24 @@ import { MarimoAdapter } from '../notebook/marimoAdapter.js';
 import { SearchService } from '../search/searchService.js';
 import { DnDService } from '../sidebar/components/dndService.js';
 import { MarkdownGenerator } from '../export/markdownGenerator.js';
+import { Clip, SearchFilters } from '../types/index.js';
+
+/** Webviewから受信するメッセージの型 */
+interface WebviewMessage {
+  type: string;
+  clipId?: string;
+  query?: string;
+  clipType?: string;
+  dateFrom?: number;
+  dateTo?: number;
+  notebookFileName?: string;
+  startIndex?: number;
+  endIndex?: number;
+  clip?: Clip;
+  updates?: { title?: string; memo?: string; tags?: string[] };
+  notebookUri?: string;
+  cellId?: string;
+}
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
@@ -105,31 +123,32 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
     const deck = await this.storageService.loadDeck();
     const webview = this._view.webview;
-    const convertedClips = this._convertClipsForWebview(deck.clips as any[], webview);
+    const convertedClips = this._convertClipsForWebview(deck.clips, webview);
     const convertedDeck = { ...deck, clips: convertedClips };
     this._view.webview.postMessage({ type: 'deckUpdate', deck: convertedDeck });
   }
 
-  private async _sendFilteredDeck(message: any) {
+  private async _sendFilteredDeck(message: WebviewMessage) {
     if (!this._view) {
       return;
     }
     const deck = await this.storageService.loadDeck();
-    const filteredClips = SearchService.searchClips(deck.clips, message.query || '', {
-      type: message.clipType,
+    const filters: SearchFilters = {
+      type: message.clipType as Clip['type'] | undefined,
       dateFrom: message.dateFrom,
       dateTo: message.dateTo,
       notebookFileName: message.notebookFileName
-    });
+    };
+    const filteredClips = SearchService.searchClips(deck.clips, message.query || '', filters);
 
     const webview = this._view.webview;
-    const convertedClips = this._convertClipsForWebview(filteredClips as any[], webview);
+    const convertedClips = this._convertClipsForWebview(filteredClips, webview);
     const convertedDeck = { ...deck, clips: convertedClips };
     this._view.webview.postMessage({ type: 'deckUpdate', deck: convertedDeck });
   }
 
-  private _convertClipsForWebview(clips: any[], webview: vscode.Webview) {
-    return clips.map((clip: any) => {
+  private _convertClipsForWebview(clips: Clip[], webview: vscode.Webview): Clip[] {
+    return clips.map((clip: Clip) => {
       if (clip.type === 'image' && clip.content.imagePath) {
         try {
           const fileUri = this.storageService.getImageUri(clip.content.imagePath);
@@ -168,7 +187,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async _deleteClip(clipId: string) {
     const deck = await this.storageService.loadDeck();
-    const clip = deck.clips.find((c: any) => c.id === clipId);
+    const clip = deck.clips.find((c: Clip) => c.id === clipId);
     if (clip) {
       await this.storageService.deleteClip(clip);
     }
@@ -181,7 +200,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async _togglePin(clipId: string) {
     const deck = await this.storageService.loadDeck();
-    const clip = deck.clips.find((c: any) => c.id === clipId);
+    const clip = deck.clips.find((c: Clip) => c.id === clipId);
     if (clip) {
       clip.pinned = !clip.pinned;
       await this.storageService.saveDeck(deck);
@@ -190,7 +209,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   private async _updateClip(clipId: string, updates: { title?: string; memo?: string; tags?: string[] }) {
     const deck = await this.storageService.loadDeck();
-    const clip = deck.clips.find((c: any) => c.id === clipId);
+    const clip = deck.clips.find((c: Clip) => c.id === clipId);
     if (clip) {
       if (updates.title !== undefined) {
         clip.title = updates.title;
@@ -301,7 +320,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     return Promise.resolve();
   }
 
-  private async _openImageInNewWindow(clip: any) {
+  private async _openImageInNewWindow(clip: Clip) {
     if (!clip || clip.type !== 'image' || !clip.content.imagePath) {
       return;
     }
@@ -334,15 +353,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${clip.title || 'Image Preview'}</title>
+        <title>${escapeHtml(clip.title || 'Image Preview')}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            background-color: #1e1e1e; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
+          body {
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
             overflow: hidden;
           }
           .image-container {
@@ -362,7 +381,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       </head>
       <body>
         <div class="image-container">
-          <img src="${panel.webview.asWebviewUri(imageUri)}" alt="${clip.title || 'Image'}">
+          <img src="${panel.webview.asWebviewUri(imageUri)}" alt="${escapeHtml(clip.title || 'Image')}">
         </div>
       </body>
       </html>
@@ -373,7 +392,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private async _openClip(clip: any) {
+  private async _openClip(clip: Clip) {
     if (!clip) {
       console.log('Expand: No clip provided for expansion');
       return;
@@ -400,7 +419,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async _openHtmlClip(clip: any) {
+  private async _openHtmlClip(clip: Clip) {
     const panel = vscode.window.createWebviewPanel(
       'clipPreview',
       clip.title || 'HTML Preview',
@@ -418,7 +437,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${clip.title || 'HTML Preview'}</title>
+        <title>${escapeHtml(clip.title || 'HTML Preview')}</title>
         <style>
           body { margin: 0; padding: 16px; background-color: #1e1e1e; color: #d4d4d4; }
           .content { max-width: 100%; overflow: auto; }
@@ -431,7 +450,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     `;
   }
 
-  private async _openTextClip(clip: any) {
+  private async _openTextClip(clip: Clip) {
     const panel = vscode.window.createWebviewPanel(
       'clipPreview',
       clip.title || 'Text Preview',
@@ -449,7 +468,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${clip.title || 'Text Preview'}</title>
+        <title>${escapeHtml(clip.title || 'Text Preview')}</title>
         <style>
           body { margin: 0; padding: 16px; background-color: #1e1e1e; color: #d4d4d4; font-family: monospace; }
           pre { white-space: pre-wrap; word-wrap: break-word; }

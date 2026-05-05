@@ -75,7 +75,9 @@ export class ClipboardService {
       prompt: 'タグをカンマ区切りで入力してください（任意）',
       placeHolder: 'tag1, tag2, tag3'
     });
-    clip.tags = tagsInput ? tagsInput.split(',').map((t: any) => t.trim()).filter((t: any) => t) : [];
+    clip.tags = tagsInput
+      ? tagsInput.split(',').map((t: string) => t.trim()).filter((t: string) => t)
+      : [];
 
     const deck = await this.storageService.loadDeck();
     deck.clips.push(clip);
@@ -263,8 +265,8 @@ export class ClipboardService {
       const fields = parsed.schema?.fields ?? [];
       const rows = Array.isArray(parsed.data) ? parsed.data : [];
       const fieldNames = fields
-        .map((field: any) => field.name)
-        .filter((name: any) => typeof name === 'string' && name !== 'index');
+        .map((field: { name?: string }) => field.name)
+        .filter((name: string | undefined): name is string => typeof name === 'string' && name !== 'index');
       const columns: string[] = fieldNames.length > 0
         ? fieldNames
         : Object.keys(rows[0] ?? {}).filter((name) => name !== 'index');
@@ -274,7 +276,7 @@ export class ClipboardService {
       }
 
       const header = columns.map((column: string) => `<th>${escapeHtml(column)}</th>`).join('');
-      const body = rows.map((row: any) => {
+      const body = rows.map((row: Record<string, unknown>) => {
         const cells = columns.map((column: string) => `<td>${escapeHtml(String(row[column] ?? ''))}</td>`).join('');
         return `<tr>${cells}</tr>`;
       }).join('');

@@ -10,8 +10,8 @@ export class MarkdownGenerator {
     markdown += `---\n\n`;
 
     // ピン留めされたクリップを先に表示
-    const pinnedClips = clips.filter((clip: any) => clip.pinned);
-    const otherClips = clips.filter((clip: any) => !clip.pinned);
+    const pinnedClips = clips.filter((clip: Clip) => clip.pinned);
+    const otherClips = clips.filter((clip: Clip) => !clip.pinned);
 
     if (pinnedClips.length > 0) {
       markdown += '## 📌 Pinned Clips\n\n';
@@ -49,7 +49,7 @@ export class MarkdownGenerator {
     section += `**Type:** ${clip.type}  \n`;
     section += `**Time:** ${new Date(clip.timestamp).toLocaleString()}  \n`;
     if (clip.tags.length > 0) {
-      section += `**Tags:** ${clip.tags.map((tag: any) => `\`${tag}\``).join(', ')}  \n`;
+      section += `**Tags:** ${clip.tags.map((tag: string) => `\`${tag}\``).join(', ')}  \n`;
     }
     section += '\n';
 
@@ -99,7 +99,7 @@ export class MarkdownGenerator {
 
   // 選択されたクリップのみをエクスポート
   static async exportSelected(clipIds: string[], allClips: Clip[], outputPath: string): Promise<void> {
-    const selectedClips = allClips.filter((clip: any) => clipIds.includes(clip.id));
+    const selectedClips = allClips.filter((clip: Clip) => clipIds.includes(clip.id));
     await this.generateMarkdown(selectedClips, outputPath);
   }
 }

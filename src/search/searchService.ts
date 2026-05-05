@@ -86,7 +86,7 @@ export class SearchService {
 
   // ピン留めされたクリップを取得
   static getPinnedClips(clips: Clip[]): Clip[] {
-    return clips.filter((clip: any) => clip.pinned);
+    return clips.filter((clip: Clip) => clip.pinned);
   }
 
   // 最近のクリップを取得（指定された数）

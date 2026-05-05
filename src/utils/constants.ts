@@ -19,7 +19,7 @@ export const IMAGES_DIR = 'images';
 
 /** クリップタイプの定義 */
 export const CLIP_TYPES = ['image', 'html', 'dataframe', 'text'] as const;
-export type ClipType = typeof CLIP_TYPES[number];
+export type ClipType = (typeof CLIP_TYPES)[number];
 
 /** MIMEタイプの優先度 */
 export const MIME_PRIORITIES = {

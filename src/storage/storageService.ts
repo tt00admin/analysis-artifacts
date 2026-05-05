@@ -84,7 +84,7 @@ export class StorageService {
 
   async deleteClip(clip: Clip): Promise<void> {
     const deck = await this.loadDeck();
-    deck.clips = deck.clips.filter((c: any) => c.id !== clip.id);
+    deck.clips = deck.clips.filter((c: Clip) => c.id !== clip.id);
     if (clip.content.imagePath) {
       await this.deleteImage(clip.content.imagePath);
     }
