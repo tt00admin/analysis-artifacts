@@ -3,7 +3,7 @@
   "type": "module",
   "displayName": "DataDeck",
   "description": "データサイエンティストの試行錯誤過程を支援するクリップボード型成果物管理システム",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "publisher": "tt00",
   "license": "MIT",
   "keywords": [
