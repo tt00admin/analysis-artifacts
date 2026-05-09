@@ -16,20 +16,6 @@
 - **ソースジャンプ**: クリップから元のノートブックセルへ瞬時に移動
 - **Markdownエクスポート**: 保存したクリップをMarkdown形式でエクスポート
 
-## 📸 スクリーンショット
-
-### メイン画面
-![DataDeck メイン画面](https://raw.githubusercontent.com/datadeck/datadeck/main/docs/images/main-screen.png)
-*サイドバーでのクリップ管理画面*
-
-### クリップ保存
-![クリップ保存のデモ](https://raw.githubusercontent.com/datadeck/datadeck/main/docs/images/clip-save-demo.gif)
-*ワンクリックでノートブックの出力をクリップ*
-
-### 検索・フィルタリング
-![検索・フィルタリング](https://raw.githubusercontent.com/datadeck/datadeck/main/docs/images/search-filter-demo.gif)
-*タグや日付でクリップを絞り込み*
-
 ## 概要
 
 DataDeckは、VS Code上でデータ分析の過程で生成される出力（グラフ、データフレーム、HTMLなど）を「クリップ」として保存・管理する拡張機能です。Jupyterノートブックとの連携により、分析の試行錯誤を効率的に記録・参照できます。
