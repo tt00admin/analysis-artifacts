@@ -183,8 +183,10 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
   return (
     <div className={`clip-card ${clip.pinned ? 'pinned' : ''}`}>
       <div className="clip-header">
-        <span className="drag-handle" style={{ cursor: 'grab', marginRight: '4px', fontSize: '14px' }}>☰</span>
-        <div className="clip-actions">
+        <div className="clip-header-start">
+          <span className="drag-handle" title="Drag to reorder">
+            <span className="codicon codicon-gripper"></span>
+          </span>
           <label className="select-clip" title="Select for export">
             <input
               type="checkbox"
@@ -195,6 +197,8 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
               }}
             />
           </label>
+        </div>
+        <div className="clip-actions">
           <button
             className="icon-button"
             onClick={(event) => {
@@ -206,46 +210,29 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
           >
             <span className="codicon codicon-go-to-file"></span>
           </button>
-          <button
-            className="icon-button"
-            onClick={(event) => {
-              event.stopPropagation();
-              handleEditClick();
-            }}
-            title="Edit"
-          >
-            <span className="codicon codicon-edit"></span>
-          </button>
-          <button
-            className="icon-button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onTogglePin(clip.id);
-            }}
-            title={clip.pinned ? 'Unpin' : 'Pin'}
-          >
-            <span className={`codicon ${clip.pinned ? 'codicon-pinned' : 'codicon-pin'}`}></span>
-          </button>
-          <button
-            className="icon-button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onDelete(clip.id);
-            }}
-            title="Delete"
-          >
-            <span className="codicon codicon-trash"></span>
-          </button>
-          <button
-            className="icon-button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenClip?.(clip);
-            }}
-            title="Expand"
-          >
-            <span className="codicon codicon-unfold"></span>
-          </button>
+          <details className="actions-menu clip-menu" onClick={(event) => event.stopPropagation()}>
+            <summary className="icon-button" title="Clip actions" aria-label="Clip actions">
+              <span className="codicon codicon-kebab-vertical"></span>
+            </summary>
+            <div className="menu-panel">
+              <button onClick={handleEditClick}>
+                <span className="codicon codicon-edit"></span>
+                <span>Edit details</span>
+              </button>
+              <button onClick={() => onTogglePin(clip.id)}>
+                <span className={`codicon ${clip.pinned ? 'codicon-pinned' : 'codicon-pin'}`}></span>
+                <span>{clip.pinned ? 'Unpin clip' : 'Pin clip'}</span>
+              </button>
+              <button onClick={() => onOpenClip?.(clip)}>
+                <span className="codicon codicon-unfold"></span>
+                <span>Expand preview</span>
+              </button>
+              <button className="danger-action" onClick={() => onDelete(clip.id)}>
+                <span className="codicon codicon-trash"></span>
+                <span>Delete clip</span>
+              </button>
+            </div>
+          </details>
         </div>
       </div>
       

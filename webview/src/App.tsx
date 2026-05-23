@@ -241,33 +241,46 @@ function App() {
             ))}
           </select>
           <button
-            className="icon-button"
+            className="primary-button action-button"
             onClick={handleClip}
-            title={deck.clipState?.reason || 'Add Clip'}
+            title={deck.clipState?.reason || 'Add current cell output'}
             disabled={deck.clipState?.canClip === false}
           >
             <i className="codicon codicon-add"></i>
+            <span>Add</span>
           </button>
-          <label className="pin-on-save" title="Pin new clips">
-            <input
-              type="checkbox"
-              checked={pinOnSave}
-              onChange={(event) => setPinOnSave(event.target.checked)}
-            />
-            <span className="codicon codicon-pin"></span>
-          </label>
-          <button className="icon-button" onClick={handleExport} title="Export Markdown">
+          <button className="action-button" onClick={handleExport} title="Export Markdown">
             <i className="codicon codicon-export"></i>
+            <span>{selectedClipIds.length > 0 ? 'Export Selected' : 'Export'}</span>
           </button>
-          <button className="icon-button" onClick={handleClearSelection} title="Clear Selection" disabled={selectedClipIds.length === 0}>
-            <i className="codicon codicon-close-all"></i>
-          </button>
-          <button className="primary-button" onClick={handleReload} title="Reload Deck">
+          <button className="action-button" onClick={handleReload} title="Reload deck">
             <i className="codicon codicon-refresh"></i>
+            <span>Reload</span>
           </button>
-          <button className="icon-button" onClick={handleResetFilters} title="Reset Filters" disabled={!hasActiveFilters}>
-            <i className="codicon codicon-clear-all"></i>
-          </button>
+          <details className="actions-menu">
+            <summary className="icon-button" title="More actions" aria-label="More actions">
+              <i className="codicon codicon-kebab-vertical"></i>
+            </summary>
+            <div className="menu-panel">
+              <label className="menu-toggle">
+                <input
+                  type="checkbox"
+                  checked={pinOnSave}
+                  onChange={(event) => setPinOnSave(event.target.checked)}
+                />
+                <span className="codicon codicon-pin"></span>
+                <span>Pin new clips</span>
+              </label>
+              <button onClick={handleClearSelection} disabled={selectedClipIds.length === 0}>
+                <i className="codicon codicon-close-all"></i>
+                <span>Clear selection</span>
+              </button>
+              <button onClick={handleResetFilters} disabled={!hasActiveFilters}>
+                <i className="codicon codicon-clear-all"></i>
+                <span>Reset filters</span>
+              </button>
+            </div>
+          </details>
 
         </div>
       </div>
