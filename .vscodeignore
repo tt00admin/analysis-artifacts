@@ -20,8 +20,6 @@ out/__mocks__/**
 *.vsix
 *.tsbuildinfo
 task.md
-要件.md
-設計.md
 docs/manual-qa.md
 plans/**
 trash/**

@@ -1,102 +1,96 @@
 # DataDeck for VS Code
 
-[![Version](https://img.shields.io/badge/version-1.0.3-blue.svg)](https://github.com/datadeck/datadeck)
+[![Version](https://img.shields.io/badge/version-0.0.1-blue.svg)](https://github.com/datadeck/datadeck)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-blue.svg)](https://marketplace.visualstudio.com/items?itemName=tt00.datadeck)
 
-データサイエンティストの試行錯誤過程を支援するクリップボード型成果物管理システム
+DataDeck is a VS Code extension for saving, organizing, and exporting important outputs from Jupyter notebooks. It helps data scientists keep useful charts, tables, HTML previews, and notes in a lightweight side panel while they iterate.
 
-## 主な機能
+## Features
 
-- **クリップ保存**: ノートブックの出力をワンクリックで保存
-- **クリップ管理**: 保存したクリップの一覧表示・検索・フィルタリング
-- **ピン留め**: 重要なクリップをピン留めして優先表示
-- **ドラッグ＆ドロップ**: クリップの順序を直感的に並び替え
-- **検索・フィルタ**: テキスト検索、タイプ別フィルタ、タグ検索、日付範囲指定
-- **ソースジャンプ**: クリップから元のノートブックセルへ瞬時に移動
-- **Markdownエクスポート**: 保存したクリップをMarkdown形式でエクスポート
+- Save notebook cell outputs to a persistent deck from the cell toolbar or command palette.
+- Review saved clips in the DataDeck Activity Bar view.
+- Search and filter clips by text, output type, tags, notebook file, and date range.
+- Pin important clips and reorder clips with drag and drop.
+- Add titles, notes, and tags to saved clips.
+- Jump from a saved clip back to its source notebook cell.
+- Export all clips, or only selected clips, to Markdown.
+- Copy referenced image assets next to the generated Markdown file.
 
-## 概要
+## Requirements
 
-DataDeckは、VS Code上でデータ分析の過程で生成される出力（グラフ、データフレーム、HTMLなど）を「クリップ」として保存・管理する拡張機能です。Jupyterノートブックとの連携により、分析の試行錯誤を効率的に記録・参照できます。
+- VS Code 1.80.0 or newer.
+- A VS Code notebook, such as a Jupyter `.ipynb` file.
 
-## インストール
+## Installation
 
-1. VS Codeの拡張機能マーケットプレイスから「DataDeck for VS Code」をインストール
-2. または、`.vsix`ファイルからインストール：
-   ```
-   code --install-extension tt-datadeck-1.0.3.vsix
-   ```
+Install DataDeck from the VS Code Marketplace, or install a local VSIX package:
 
-## 使用方法
+```bash
+code --install-extension tt-datadeck-0.0.1.vsix
+```
 
-### クリップの保存
-1. ノートブックエディタでクリップしたいセルを選択
-2. コマンドパレット（`Ctrl+Shift+P` または `Cmd+Shift+P`）を開き、「Add to Deck」を実行
-   - ショートカットキー：`Ctrl+Shift+D`（Windows/Linux）または `Cmd+Shift+D`（macOS）
+## Getting Started
 
-### クリップの閲覧
-1. アクティビティバーからDataDeckアイコンをクリック
-2. サイドバーで保存されたクリップを閲覧
-3. 検索バーでクリップを検索・フィルタリング
+1. Open a Jupyter notebook in VS Code.
+2. Select a cell that has output you want to keep.
+3. Run **DataDeck: Add to Deck** from the command palette, click **Add to Deck** in the notebook cell title area, or use the keyboard shortcut:
+   - Windows/Linux: `Ctrl+Shift+D`
+   - macOS: `Cmd+Shift+D`
+4. Open the DataDeck view from the Activity Bar to review and manage saved clips.
 
-### クリップの管理
-- **ピン留め**: クリップをピン留めして固定表示
-- **削除**: 確認後に不要なクリップを削除
-- **並び替え**: ドラッグ＆ドロップで順序を変更
-- **ソースへジャンプ**: クリップカードのジャンプボタンから元のセルに移動
-- **選択エクスポート**: チェックしたクリップのみMarkdownに出力
+## Commands
 
-### Markdownエクスポート
-サイドバーのExportボタン、またはコマンドパレットから「Export to Markdown」を実行します。画像はMarkdownファイル横のassetフォルダへコピーされます。
+| Command | Description |
+| --- | --- |
+| `DataDeck: Add to Deck` | Saves the selected notebook cell output. |
+| `DataDeck: Export to Markdown` | Exports saved clips to a Markdown file. |
+| `DataDeck: Clear All Clips` | Deletes all saved clips and stored image assets for the workspace. |
 
-## 対応ノートブック
+## Data Storage
 
-- **VS Code Native Notebook**: Jupyterノートブック（.ipynb）
+DataDeck stores workspace data under:
 
-## ライセンス
+```text
+.vscode/datadeck/
+```
 
-MIT License
+This directory can contain saved clip metadata and copied image assets. Add it to your project `.gitignore` if you do not want notebook outputs committed to source control.
 
+## Privacy
 
-## 詳細な使用例
+DataDeck stores clips locally in the current workspace. It does not send notebook outputs, images, or clip metadata to an external service.
 
-### 例1: データ分析の試行錯誤を記録する
-1. Jupyter Notebookでデータ分析を行う
-2. 重要なグラフが出力されたら、セルを選択して `Ctrl+Shift+D` でクリップ
-3. サイドバーの編集ボタンからタイトルやメモを追記
-4. 後でサイドバーからクリップを参照し、分析の過程を振り返る
+## Known Limitations
 
-### 例2: 複数のグラフを比較する
-1. 複数のクリップをピン留めする
-2. サイドバーで並び替え（ドラッグ＆ドロップ）
-3. 比較したいグラフを順に配置
+- DataDeck currently targets VS Code native notebooks, including Jupyter `.ipynb` notebooks.
+- Clip source navigation depends on notebook file and cell metadata remaining available.
+- Large image-heavy decks may increase the size of `.vscode/datadeck/`.
 
-## トラブルシューティング
+## Troubleshooting
 
-### クリップが保存できない
-- Notebookがアクティブになっているか確認してください
-- セルが選択されているか確認してください
-- VS Codeのバージョンが1.80.0以上であるか確認してください
+### A clip is not saved
 
-### 画像が表示されない
-- `.vscode/datadeck/images/` ディレクトリが存在するか確認
-- 画像ファイルが削除されていないか確認
+- Make sure a notebook editor is active.
+- Make sure the selected cell has output.
+- Make sure you are using VS Code 1.80.0 or newer.
 
-## FAQ
+### An image clip is not displayed
 
-**Q: クリップの保存場所はどこですか？**
-A: ワークスペースの `.vscode/datadeck/` ディレクトリです。
+- Check whether `.vscode/datadeck/images/` exists in the workspace.
+- Check whether the referenced image file was moved or deleted.
 
-**Q: クリップを削除するには？**
-A: クリップカードの削除ボタンをクリックするか、右クリックメニューから削除を選択してください。
+### Exported Markdown does not show images
 
-## 更新履歴
+- Keep the generated asset folder next to the exported Markdown file.
+- Avoid moving the Markdown file without also moving its generated assets.
 
-### v1.0.0 (2026-04-29)
-- 初回リリース
-- クリップ保存・管理機能
-- 検索・フィルタリング
-- ドラッグ＆ドロップ並び替え
-- ソースジャンプ
-- Markdownエクスポート
+## Release Notes
+
+### 0.0.1
+
+Initial public release.
+
+## License
+
+MIT
