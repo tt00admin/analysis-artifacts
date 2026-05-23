@@ -175,4 +175,34 @@ describe('DnDService.reorderRecentClips', () => {
     expect(imageClips[1].id).toBe('img1');
     expect(imageClips[2].id).toBe('img2');
   });
+
+  test('should reorder pinned clips by id', () => {
+    const clips = [
+      createMockClip('p1', true, 0),
+      createMockClip('p2', true, 1),
+      createMockClip('u1', false, 2),
+    ];
+
+    const result = DnDService.reorderPinnedClipsById(clips, 'p2', 'p1');
+    const pinnedResult = result.filter(c => c.pinned);
+
+    expect(pinnedResult.map(c => c.id)).toEqual(['p2', 'p1']);
+    expect(result.find(c => c.id === 'u1')).toBeDefined();
+  });
+
+  test('should reorder recent clips by id without dropping other types', () => {
+    const clips = [
+      createMockClip('p1', true, 0, 'text'),
+      createMockClip('img1', false, 1, 'image'),
+      createMockClip('img2', false, 2, 'image'),
+      createMockClip('text1', false, 3, 'text'),
+    ];
+
+    const result = DnDService.reorderRecentClipsById(clips, 'image', 'img2', 'img1');
+    const imageClips = result.filter(c => c.type === 'image' && !c.pinned);
+
+    expect(imageClips.map(c => c.id)).toEqual(['img2', 'img1']);
+    expect(result.find(c => c.id === 'text1')).toBeDefined();
+    expect(result.find(c => c.id === 'p1')).toBeDefined();
+  });
 });

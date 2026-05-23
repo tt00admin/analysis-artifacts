@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { Clip } from '../types/index.js';
 import { escapeHtml } from '../utils/htmlEscape.js';
+import { sanitizeHtml } from '../utils/htmlSanitizer.js';
 import { StorageService } from '../storage/storageService.js';
 
 /**
@@ -81,7 +82,7 @@ export class ContentPanelService {
       clip.title || 'HTML Preview',
       vscode.ViewColumn.Beside,
       {
-        enableScripts: true,
+        enableScripts: false,
         retainContextWhenHidden: true,
       }
     );
@@ -111,6 +112,7 @@ export class ContentPanelService {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src 'unsafe-inline';">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${escapeHtml(clip.title || 'Image Preview')}</title>
         <style>
@@ -147,10 +149,12 @@ export class ContentPanelService {
   }
 
   private getHtmlContentHtml(clip: Clip): string {
+    const safeHtml = sanitizeHtml(clip.content.htmlContent || '');
     return `<!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${escapeHtml(clip.title || 'HTML Preview')}</title>
         <style>
@@ -159,7 +163,7 @@ export class ContentPanelService {
         </style>
       </head>
       <body>
-        <div class="content">${clip.content.htmlContent || ''}</div>
+        <div class="content">${safeHtml}</div>
       </body>
       </html>`;
   }
@@ -170,6 +174,7 @@ export class ContentPanelService {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${escapeHtml(clip.title || 'Text Preview')}</title>
         <style>

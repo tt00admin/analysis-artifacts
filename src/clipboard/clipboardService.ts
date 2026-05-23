@@ -24,7 +24,7 @@ export class ClipboardService {
     this.htmlGenerator = new HtmlGenerator();
   }
 
-  async clipActiveCell(cell?: vscode.NotebookCell): Promise<string | undefined> {
+  async clipActiveCell(cell?: vscode.NotebookCell, options: { pinned?: boolean } = {}): Promise<string | undefined> {
     // まず標準のノートブックエディタをチェック
     let activeCell = cell ?? this.notebookAdapter.getActiveCell();
     let activeAdapter: INotebookAdapter = this.notebookAdapter;
@@ -54,35 +54,22 @@ export class ClipboardService {
     }
 
     clip.codeSnippet = this.associateCode(activeCell);
+    clip.source.cellIndex = activeCell.index;
+    clip.source.codeHash = clip.codeSnippet ? this.hashCode(clip.codeSnippet) : undefined;
 
-    // タイトル入力
-    const title = await vscode.window.showInputBox({
-      prompt: 'クリップのタイトルを入力してください（任意）',
-      placeHolder: 'タイトルなし'
+    clip.title = '';
+    clip.memo = '';
+    clip.tags = [];
+    clip.pinned = Boolean(options.pinned);
+    if (clip.pinned) {
+      clip.order = 0;
+    }
+
+    await this.storageService.updateDeck((deck) => {
+      deck.clips.push(clip);
     });
-    clip.title = title || '';
 
-    // メモ入力
-    const memo = await vscode.window.showInputBox({
-      prompt: 'クリップのメモを入力してください（任意）',
-      placeHolder: 'メモなし'
-    });
-    clip.memo = memo || '';
-
-    // タグ入力
-    const tagsInput = await vscode.window.showInputBox({
-      prompt: 'タグをカンマ区切りで入力してください（任意）',
-      placeHolder: 'tag1, tag2, tag3'
-    });
-    clip.tags = tagsInput
-      ? tagsInput.split(',').map((t: string) => t.trim()).filter((t: string) => t)
-      : [];
-
-    const deck = await this.storageService.loadDeck();
-    deck.clips.push(clip);
-    await this.storageService.saveDeck(deck);
-
-    vscode.window.showInformationMessage(`Clip saved: ${clip.id.slice(0, 8)}`);
+    vscode.window.showInformationMessage(`Clip saved: ${clip.id.slice(0, 8)}. Use Edit in DataDeck to add a title, memo, or tags.`);
     return clip.id;
   }
 
@@ -163,6 +150,10 @@ export class ClipboardService {
       const imagePath = await this.storageService.saveImage(base64, filename);
       clip.content = { imagePath, mimeType };
       const dimensions = this.imageAnalyzer.getDimensions(data);
+      const fileSize = await this.storageService.getFileSize(imagePath);
+      if (fileSize !== undefined) {
+        clip.metadata = { ...clip.metadata, fileSize };
+      }
       if (dimensions) {
         clip.metadata = { ...clip.metadata, dimensions };
       }
@@ -208,5 +199,13 @@ export class ClipboardService {
 
   private associateCode(cell: vscode.NotebookCell): string | undefined {
     return cell.document?.getText();
+  }
+
+  private hashCode(value: string): string {
+    let hash = 0;
+    for (let i = 0; i < value.length; i++) {
+      hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash).toString(16);
   }
 }

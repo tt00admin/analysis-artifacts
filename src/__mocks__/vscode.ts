@@ -10,6 +10,7 @@ export const window = {
   activeNotebookEditor: undefined,
   showInformationMessage: jest.fn(),
   showErrorMessage: jest.fn(),
+  showWarningMessage: jest.fn(),
   showNotebookDocument: jest.fn().mockResolvedValue({
     revealRange: jest.fn()
   })
@@ -20,6 +21,9 @@ export const Uri = {
 };
 
 export const NotebookRange = jest.fn();
+export const NotebookEditorRevealType = {
+  InCenter: 2
+};
 
 export const ExtensionContext = jest.fn();
 
@@ -28,5 +32,6 @@ export default {
   window,
   Uri,
   NotebookRange,
+  NotebookEditorRevealType,
   ExtensionContext
 };

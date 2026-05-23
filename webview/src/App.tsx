@@ -15,12 +15,16 @@ declare global {
 }
 
 function App() {
-  const [deck, setDeck] = useState<{ clips: Clip[] } | null>(null);
+  const [deck, setDeck] = useState<{ clips: Clip[]; allTags?: string[]; lastUpdated?: number; clipState?: { canClip: boolean; reason?: string } } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('');
+  const [filterTag, setFilterTag] = useState<string>('');
   const [filterDateFrom, setFilterDateFrom] = useState<string>('');
   const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [filterFileName, setFilterFileName] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [selectedClipIds, setSelectedClipIds] = useState<string[]>([]);
+  const [pinOnSave, setPinOnSave] = useState(false);
 
   useEffect(() => {
     // VS Code APIを取得
@@ -34,6 +38,10 @@ function App() {
       const message = event.data;
       if (message.type === 'deckUpdate') {
         setDeck(message.deck);
+        setErrorMessage('');
+      }
+      if (message.type === 'error') {
+        setErrorMessage(message.message || 'DataDeck operation failed.');
       }
     };
     window.addEventListener('message', handler);
@@ -48,23 +56,28 @@ function App() {
 
   // フィルター条件変更時に拡張機能に通知
   useEffect(() => {
-    if (window.vscode) {
+    const timeout = window.setTimeout(() => {
+      if (!window.vscode) {
+        return;
+      }
       window.vscode.postMessage({
         type: 'filterDeck',
         query: searchQuery,
         clipType: filterType || undefined,
+        tags: filterTag ? [filterTag] : undefined,
         dateFrom: filterDateFrom ? new Date(filterDateFrom).getTime() : undefined,
         dateTo: filterDateTo ? new Date(filterDateTo).getTime() : undefined,
         notebookFileName: filterFileName || undefined
       });
-    }
-  }, [searchQuery, filterType, filterDateFrom, filterDateTo, filterFileName]);
+    }, 200);
+    return () => window.clearTimeout(timeout);
+  }, [searchQuery, filterType, filterTag, filterDateFrom, filterDateTo, filterFileName]);
 
   const handleClip = useCallback(() => {
     if (window.vscode) {
-      window.vscode.postMessage({ type: 'clipActiveCell' });
+      window.vscode.postMessage({ type: 'clipActiveCell', pinned: pinOnSave });
     }
-  }, []);
+  }, [pinOnSave]);
 
   const handleReload = useCallback(() => {
     if (window.vscode) {
@@ -73,6 +86,10 @@ function App() {
   }, []);
 
   const handleDelete = useCallback((clipId: string) => {
+    const confirmed = window.confirm('Delete this clip? This cannot be undone.');
+    if (!confirmed) {
+      return;
+    }
     if (window.vscode) {
       window.vscode.postMessage({ type: 'deleteClip', clipId });
     }
@@ -86,19 +103,19 @@ function App() {
 
   const handleExport = useCallback(() => {
     if (window.vscode) {
-      window.vscode.postMessage({ type: 'exportMarkdown' });
+      window.vscode.postMessage({ type: 'exportMarkdown', clipIds: selectedClipIds });
+    }
+  }, [selectedClipIds]);
+
+  const handleReorder = useCallback((clipId: string, targetClipId: string) => {
+    if (window.vscode) {
+      window.vscode.postMessage({ type: 'reorderClips', clipId, targetClipId });
     }
   }, []);
 
-  const handleReorder = useCallback((startIndex: number, endIndex: number) => {
+  const handleReorderRecent = useCallback((type: string, clipId: string, targetClipId: string) => {
     if (window.vscode) {
-      window.vscode.postMessage({ type: 'reorderClips', startIndex, endIndex });
-    }
-  }, []);
-
-  const handleReorderRecent = useCallback((type: string, startIndex: number, endIndex: number) => {
-    if (window.vscode) {
-      window.vscode.postMessage({ type: 'reorderRecentClips', clipType: type, startIndex, endIndex });
+      window.vscode.postMessage({ type: 'reorderRecentClips', clipType: type, clipId, targetClipId });
     }
   }, []);
 
@@ -120,15 +137,49 @@ function App() {
     }
   }, []);
 
+  const handleResetFilters = useCallback(() => {
+    setSearchQuery('');
+    setFilterType('');
+    setFilterTag('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterFileName('');
+  }, []);
+
+  const handleSelectClip = useCallback((clipId: string, selected: boolean) => {
+    setSelectedClipIds((current) => {
+      if (selected) {
+        return current.includes(clipId) ? current : [...current, clipId];
+      }
+      return current.filter((id) => id !== clipId);
+    });
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedClipIds([]);
+  }, []);
+
   if (!deck) {
     return <div className="loading-state">Loading DataDeck...</div>;
   }
 
   const totalClips = deck.clips.length;
   const pinnedCount = deck.clips.filter((clip) => clip.pinned).length;
+  const hasActiveFilters = Boolean(searchQuery || filterType || filterTag || filterDateFrom || filterDateTo || filterFileName);
 
   return (
     <div className="app">
+      <div className="deck-summary">
+        <span>{totalClips} clips</span>
+        <span>{pinnedCount} pinned</span>
+        {selectedClipIds.length > 0 && <span>{selectedClipIds.length} selected</span>}
+        {hasActiveFilters && <span>filtered</span>}
+      </div>
+      {errorMessage && (
+        <div className="error-state" role="alert">
+          {errorMessage}
+        </div>
+      )}
       {/* 1段目：ノートブックファイル名フィルター、日付範囲フィルター */}
       <div className="top-section">
         <div className="notebook-filter">
@@ -179,14 +230,43 @@ function App() {
             <option value="dataframe">DataFrame</option>
             <option value="text">Text</option>
           </select>
-          <button className="icon-button" onClick={handleClip} title="Add Clip">
+          <select
+            value={filterTag}
+            onChange={(e) => setFilterTag(e.target.value)}
+            aria-label="Filter by tag"
+          >
+            <option value="">All Tags</option>
+            {(deck.allTags ?? []).map((tag) => (
+              <option key={tag} value={tag}>{tag}</option>
+            ))}
+          </select>
+          <button
+            className="icon-button"
+            onClick={handleClip}
+            title={deck.clipState?.reason || 'Add Clip'}
+            disabled={deck.clipState?.canClip === false}
+          >
             <i className="codicon codicon-add"></i>
           </button>
+          <label className="pin-on-save" title="Pin new clips">
+            <input
+              type="checkbox"
+              checked={pinOnSave}
+              onChange={(event) => setPinOnSave(event.target.checked)}
+            />
+            <span className="codicon codicon-pin"></span>
+          </label>
           <button className="icon-button" onClick={handleExport} title="Export Markdown">
             <i className="codicon codicon-export"></i>
           </button>
+          <button className="icon-button" onClick={handleClearSelection} title="Clear Selection" disabled={selectedClipIds.length === 0}>
+            <i className="codicon codicon-close-all"></i>
+          </button>
           <button className="primary-button" onClick={handleReload} title="Reload Deck">
             <i className="codicon codicon-refresh"></i>
+          </button>
+          <button className="icon-button" onClick={handleResetFilters} title="Reset Filters" disabled={!hasActiveFilters}>
+            <i className="codicon codicon-clear-all"></i>
           </button>
 
         </div>
@@ -201,10 +281,11 @@ function App() {
         onOpenClip={handleOpenClip}
         onReorderRecent={handleReorderRecent}
         onUpdateClip={handleUpdateClip}
+        selectedClipIds={selectedClipIds}
+        onSelectClip={handleSelectClip}
       />
     </div>
   );
 }
 
 export default App;
-

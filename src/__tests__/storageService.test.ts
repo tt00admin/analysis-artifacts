@@ -8,6 +8,9 @@ jest.mock('vscode', () => ({
   workspace: {
     workspaceFolders: [{ uri: { fsPath: '/test/workspace' } }]
   },
+  window: {
+    showWarningMessage: jest.fn()
+  },
   ExtensionContext: jest.fn()
 }));
 
@@ -28,11 +31,13 @@ describe('StorageService', () => {
     (fs.access as jest.Mock).mockRejectedValueOnce(new Error('File not found'));
     (fs.mkdir as jest.Mock).mockResolvedValueOnce(undefined);
     (fs.writeFile as jest.Mock).mockResolvedValueOnce(undefined);
+    (fs.rename as jest.Mock).mockResolvedValueOnce(undefined);
 
     await storageService.initialize();
 
-    expect(fs.mkdir).toHaveBeenCalledTimes(2);
+    expect(fs.mkdir).toHaveBeenCalled();
     expect(fs.writeFile).toHaveBeenCalledTimes(1);
+    expect(fs.rename).toHaveBeenCalledTimes(1);
   });
 
   test('loadDeck should return deck with clips', async () => {
@@ -57,8 +62,24 @@ describe('StorageService', () => {
       settings: { autoSave: true, maxClips: 100, imageQuality: 85 }
     };
     (fs.writeFile as jest.Mock).mockResolvedValueOnce(undefined);
+    (fs.rename as jest.Mock).mockResolvedValueOnce(undefined);
 
     await storageService.saveDeck(deck);
     expect(fs.writeFile).toHaveBeenCalledTimes(1);
+    expect(fs.rename).toHaveBeenCalledTimes(1);
+  });
+
+  test('loadDeck should recover corrupt JSON with initial deck', async () => {
+    (fs.access as jest.Mock).mockResolvedValue(undefined);
+    (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
+    (fs.readFile as jest.Mock).mockResolvedValueOnce('{bad json');
+    (fs.rename as jest.Mock).mockResolvedValue(undefined);
+    (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
+
+    const deck = await storageService.loadDeck();
+
+    expect(deck.clips).toEqual([]);
+    expect(fs.rename).toHaveBeenCalled();
+    expect(fs.writeFile).toHaveBeenCalled();
   });
 });

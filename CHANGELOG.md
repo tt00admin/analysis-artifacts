@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.3] - 2026-05-09
 
+### Added
+- Marketplace icon metadata.
+- Manual QA checklist for release validation.
+
 ### Updated
-- Version update to 1.0.3
+- README usage instructions for the current command names and Markdown export flow.
+- Release packaging now runs a clean build before VSIX creation.
+- Marketplace and Activity Bar icons now use smaller publish-ready assets.
+
+### Removed
+- Stale build artifacts and local scratch files from the packaged extension.
+- Unreferenced documentation images from the packaged extension.
 
 ## [1.0.2] - 2026-05-05
 

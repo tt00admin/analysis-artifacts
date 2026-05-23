@@ -18,8 +18,12 @@ interface WebviewMessage {
   dateFrom?: number;
   dateTo?: number;
   notebookFileName?: string;
+  tags?: string[];
   startIndex?: number;
   endIndex?: number;
+  targetClipId?: string;
+  clipIds?: string[];
+  pinned?: boolean;
   clip?: Clip;
   updates?: { title?: string; memo?: string; tags?: string[] };
   notebookUri?: string;
@@ -87,64 +91,75 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    switch (message.type) {
-      case 'clipActiveCell':
-        await this.clipboardService.clipActiveCell();
-        this.refreshDeck();
-        break;
-      case 'requestDeck':
-        await this._sendDeck();
-        break;
-      case 'filterDeck':
-        await this._sendFilteredDeck(message);
-        break;
-      case 'exportMarkdown':
-        await this._exportMarkdown();
-        break;
-      case 'deleteClip':
-        if (message.clipId) {
-          await this._deleteClip(message.clipId);
-        }
-        break;
-      case 'togglePin':
-        if (message.clipId) {
-          await this._togglePin(message.clipId);
+    try {
+      switch (message.type) {
+        case 'clipActiveCell':
+          await this.clipboardService.clipActiveCell(undefined, { pinned: message.pinned });
           this.refreshDeck();
-        }
-        break;
-      case 'jumpToCell':
-        if (message.notebookUri && message.cellId) {
-          await this._jumpToCell(message.notebookUri, message.cellId);
-        }
-        break;
-      case 'reorderClips':
-        if (message.startIndex !== undefined && message.endIndex !== undefined) {
-          await this._reorderClips(message.startIndex, message.endIndex);
-          this.refreshDeck();
-        }
-        break;
-      case 'openImage':
-        if (message.clip) {
-          await this.contentPanelService.openClip(message.clip);
-        }
-        break;
-      case 'openClip':
-        if (message.clip) {
-          await this.contentPanelService.openClip(message.clip);
-        }
-        break;
-      case 'reorderRecentClips':
-        if (message.clipType && message.startIndex !== undefined && message.endIndex !== undefined) {
-          await this._reorderRecentClips(message.clipType, message.startIndex, message.endIndex);
-          this.refreshDeck();
-        }
-        break;
-      case 'updateClip':
-        if (message.clipId) {
-          await this._updateClip(message.clipId, message.updates ?? {});
-          this.refreshDeck();
-        }
-        break;
+          break;
+        case 'requestDeck':
+          await this._sendDeck();
+          break;
+        case 'filterDeck':
+          await this._sendFilteredDeck(message);
+          break;
+        case 'exportMarkdown':
+          if (message.clipIds && message.clipIds.length > 0) {
+            await this._exportSelectedMarkdown(message.clipIds);
+          } else {
+            await this._exportMarkdown();
+          }
+          break;
+        case 'deleteClip':
+          if (message.clipId) {
+            await this._deleteClip(message.clipId);
+          }
+          break;
+        case 'togglePin':
+          if (message.clipId) {
+            await this._togglePin(message.clipId);
+            this.refreshDeck();
+          }
+          break;
+        case 'jumpToCell':
+          if (message.notebookUri) {
+            await this._jumpToCell(message.notebookUri, message.cellId, message.clip?.source.cellIndex, message.clip?.source.codeHash);
+          }
+          break;
+        case 'reorderClips':
+          if (message.clipId && message.targetClipId) {
+            await this._reorderClips(message.clipId, message.targetClipId);
+            this.refreshDeck();
+          }
+          break;
+        case 'openImage':
+          if (message.clip) {
+            await this.contentPanelService.openClip(message.clip);
+          }
+          break;
+        case 'openClip':
+          if (message.clip) {
+            await this.contentPanelService.openClip(message.clip);
+          }
+          break;
+        case 'reorderRecentClips':
+          if (message.clipType && message.clipId && message.targetClipId) {
+            await this._reorderRecentClips(message.clipType, message.clipId, message.targetClipId);
+            this.refreshDeck();
+          }
+          break;
+        case 'updateClip':
+          if (message.clipId) {
+            await this._updateClip(message.clipId, message.updates ?? {});
+            this.refreshDeck();
+          }
+          break;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`DataDeck operation failed: ${errorMessage}`);
+      this._view.webview.postMessage({ type: 'error', message: errorMessage });
+      await this.refreshDeck();
     }
   }
 
@@ -155,7 +170,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const deck = await this.storageService.loadDeck();
     const webview = this._view.webview;
     const convertedClips = this.webviewHelpers.convertClipsForWebview(deck.clips, webview);
-    const convertedDeck = { ...deck, clips: convertedClips };
+    const convertedDeck = { ...deck, clips: convertedClips, allTags: this.searchService.getAllTags(deck.clips), clipState: this.getClipState() };
     this._view.webview.postMessage({ type: 'deckUpdate', deck: convertedDeck });
   }
 
@@ -166,6 +181,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     const deck = await this.storageService.loadDeck();
     const filters: SearchFilters = {
       type: message.clipType as Clip['type'] | undefined,
+      tags: message.tags,
       dateFrom: message.dateFrom,
       dateTo: message.dateTo,
       notebookFileName: message.notebookFileName
@@ -174,7 +190,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
     const webview = this._view.webview;
     const convertedClips = this.webviewHelpers.convertClipsForWebview(filteredClips, webview);
-    const convertedDeck = { ...deck, clips: convertedClips };
+    const convertedDeck = { ...deck, clips: convertedClips, allTags: this.searchService.getAllTags(deck.clips), clipState: this.getClipState() };
     this._view.webview.postMessage({ type: 'deckUpdate', deck: convertedDeck });
   }
 
@@ -190,7 +206,34 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         filters: { 'Markdown': ['md'] }
       });
       if (outputUri) {
-        await MarkdownGenerator.generateMarkdown(deck.clips, outputUri.fsPath);
+        await MarkdownGenerator.generateMarkdown(deck.clips, outputUri.fsPath, {
+          copyImageAssets: true,
+          resolveImagePath: (imagePath) => this.storageService.getImageFsPath(imagePath)
+        });
+        vscode.window.showInformationMessage(`Markdown exported: ${outputUri.fsPath}`);
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(`Export failed: ${error}`);
+    }
+  }
+
+  private async _exportSelectedMarkdown(clipIds: string[]): Promise<void> {
+    try {
+      const deck = await this.storageService.loadDeck();
+      const selected = deck.clips.filter((clip) => clipIds.includes(clip.id));
+      if (selected.length === 0) {
+        vscode.window.showInformationMessage('No selected clips to export');
+        return;
+      }
+      const outputUri = await vscode.window.showSaveDialog({
+        defaultUri: vscode.Uri.file('datadeck-export.md'),
+        filters: { 'Markdown': ['md'] }
+      });
+      if (outputUri) {
+        await MarkdownGenerator.generateMarkdown(selected, outputUri.fsPath, {
+          copyImageAssets: true,
+          resolveImagePath: (imagePath) => this.storageService.getImageFsPath(imagePath)
+        });
         vscode.window.showInformationMessage(`Markdown exported: ${outputUri.fsPath}`);
       }
     } catch (error) {
@@ -199,11 +242,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private async _deleteClip(clipId: string): Promise<void> {
-    const deck = await this.storageService.loadDeck();
-    const clip = deck.clips.find((c: Clip) => c.id === clipId);
-    if (clip) {
-      await this.storageService.deleteClip(clip);
-    }
+    await this.storageService.updateDeck(async (deck) => {
+      const clip = deck.clips.find((c: Clip) => c.id === clipId);
+      if (!clip) {
+        return;
+      }
+      deck.clips = deck.clips.filter((c: Clip) => c.id !== clipId);
+      if (clip.content.imagePath) {
+        await this.storageService.deleteImage(clip.content.imagePath);
+      }
+    });
     this.refreshDeck();
   }
 
@@ -212,46 +260,40 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private async _togglePin(clipId: string): Promise<void> {
-    const deck = await this.storageService.loadDeck();
-    const clip = deck.clips.find((c: Clip) => c.id === clipId);
-    if (clip) {
-      clip.pinned = !clip.pinned;
-      await this.storageService.saveDeck(deck);
-    }
+    await this.storageService.updateDeck((deck) => {
+      const clip = deck.clips.find((c: Clip) => c.id === clipId);
+      if (clip) {
+        clip.pinned = !clip.pinned;
+        clip.order = clip.pinned
+          ? this.nextPinnedOrder(deck.clips)
+          : Date.now();
+      }
+    });
   }
 
   private async _updateClip(clipId: string, updates: { title?: string; memo?: string; tags?: string[] }): Promise<void> {
-    const deck = await this.storageService.loadDeck();
-    const clip = deck.clips.find((c: Clip) => c.id === clipId);
-    if (clip) {
-      if (updates.title !== undefined) {
-        clip.title = updates.title;
+    await this.storageService.updateDeck((deck) => {
+      const clip = deck.clips.find((c: Clip) => c.id === clipId);
+      if (clip) {
+        if (updates.title !== undefined) {
+          clip.title = updates.title;
+        }
+        if (updates.memo !== undefined) {
+          clip.memo = updates.memo;
+        }
+        if (updates.tags !== undefined) {
+          clip.tags = updates.tags;
+        }
       }
-      if (updates.memo !== undefined) {
-        clip.memo = updates.memo;
-      }
-      if (updates.tags !== undefined) {
-        clip.tags = updates.tags;
-      }
-      await this.storageService.saveDeck(deck);
-    }
+    });
   }
 
-  private async _reorderClips(startIndex: number, endIndex: number): Promise<void> {
+  private async _reorderClips(clipId: string, targetClipId: string): Promise<void> {
     try {
-      const deck = await this.storageService.loadDeck();
-      const originalClips = [...deck.clips];
-      const newClips = DnDService.reorderClips(deck.clips, startIndex, endIndex);
-      
-      // パラメータが無効な場合、元のclipsを返すため保存しない
-      if (newClips === originalClips) {
-        console.log('Reorder of pinned clips skipped: invalid indices or no change');
-        return;
-      }
-      
-      deck.clips = newClips;
-      await this.storageService.saveDeck(deck);
-      console.log(`Reordered pinned clips: moved from ${startIndex} to ${endIndex}`);
+      await this.storageService.updateDeck((deck) => {
+        deck.clips = DnDService.reorderPinnedClipsById(deck.clips, clipId, targetClipId);
+      });
+      console.log(`Reordered pinned clip: moved ${clipId} before ${targetClipId}`);
     } catch (error) {
       console.error('Failed to reorder pinned clips:', error);
       vscode.window.showErrorMessage(`Failed to reorder pinned clips: ${error instanceof Error ? error.message : error}. The deck state has been restored.`);
@@ -260,67 +302,34 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async _reorderRecentClips(clipType: string, startIndex: number, endIndex: number): Promise<void> {
+  private async _reorderRecentClips(clipType: string, clipId: string, targetClipId: string): Promise<void> {
     try {
-      const deck = await this.storageService.loadDeck();
-      
-      // 該当タイプの未ピン留めクリップの実際のインデックスを収集
-      const targetIndices: number[] = [];
-      deck.clips.forEach((clip, index) => {
-        if (clip.type === clipType && !clip.pinned) {
-          targetIndices.push(index);
-        }
+      await this.storageService.updateDeck((deck) => {
+        deck.clips = DnDService.reorderRecentClipsById(deck.clips, clipType, clipId, targetClipId);
       });
-      
-      if (targetIndices.length === 0) {
-        console.log(`No clips of type ${clipType} to reorder`);
-        return;
-      }
-      
-      // 境界値チェック
-      if (startIndex < 0 || startIndex >= targetIndices.length ||
-          endIndex < 0 || endIndex >= targetIndices.length) {
-        console.error('Invalid reorder indices for recent clips:', { startIndex, endIndex, length: targetIndices.length });
-        return;
-      }
-      
-      // 実際のインデックスを取得
-      const actualStartIndex = targetIndices[startIndex];
-      const actualEndIndex = targetIndices[endIndex];
-      
-      // クリップを移動
-      const [movedClip] = deck.clips.splice(actualStartIndex, 1);
-      
-      // ターゲットインデックスを調整（元の開始インデックスが終了インデックスより小さい場合、削除によりインデックスがずれる）
-      let adjustedEndIndex = actualEndIndex;
-      if (actualStartIndex < actualEndIndex) {
-        adjustedEndIndex -= 1;
-      }
-      
-      deck.clips.splice(adjustedEndIndex, 0, movedClip);
-      
-      // 該当タイプの未ピン留めクリップのorderのみ更新
-      let order = 0;
-      deck.clips.forEach((clip) => {
-        if (clip.type === clipType && !clip.pinned) {
-          clip.order = order++;
-        }
-      });
-      
-      await this.storageService.saveDeck(deck);
-      console.log(`Reordered recent clips of type ${clipType}: moved from ${startIndex} to ${endIndex}`);
+      console.log(`Reordered recent clip of type ${clipType}: moved ${clipId} before ${targetClipId}`);
     } catch (error) {
       console.error('Failed to reorder recent clips:', error);
       vscode.window.showErrorMessage(`Failed to reorder clips: ${error}`);
     }
   }
 
-  private async _jumpToCell(notebookUri: string, cellId: string): Promise<void> {
+  private nextPinnedOrder(clips: Clip[]): number {
+    const orders = clips.filter((clip) => clip.pinned).map((clip) => clip.order ?? 0);
+    return orders.length > 0 ? Math.max(...orders) + 1 : 0;
+  }
+
+  private async _jumpToCell(notebookUri: string, cellId?: string, cellIndex?: number, codeHash?: string): Promise<void> {
     try {
       const notebookAdapter = new NotebookAdapter();
-      await notebookAdapter.jumpToCell(notebookUri, cellId);
+      await notebookAdapter.jumpToCell(notebookUri, cellId, cellIndex, codeHash);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to jump to cell: ${error}`);
     }
+  }
+
+  private getClipState(): { canClip: boolean; reason?: string } {
+    const notebookAdapter = new NotebookAdapter();
+    return notebookAdapter.canClipActiveCell();
   }
 }

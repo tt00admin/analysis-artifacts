@@ -6,14 +6,16 @@ interface DeckProps {
   clips: Clip[];
   onDelete: (clipId: string) => void;
   onTogglePin: (clipId: string) => void;
-  onReorder?: (startIndex: number, endIndex: number) => void;
+  onReorder?: (clipId: string, targetClipId: string) => void;
   onOpenImage?: (clip: Clip) => void;
   onOpenClip?: (clip: Clip) => void;
-  onReorderRecent?: (type: string, startIndex: number, endIndex: number) => void;
+  onReorderRecent?: (type: string, clipId: string, targetClipId: string) => void;
   onUpdateClip?: (clipId: string, updates: { title?: string; memo?: string; tags?: string[] }) => void;
+  selectedClipIds?: string[];
+  onSelectClip?: (clipId: string, selected: boolean) => void;
 }
 
-function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip, onReorderRecent, onUpdateClip }: DeckProps) {
+function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip, onReorderRecent, onUpdateClip, selectedClipIds = [], onSelectClip }: DeckProps) {
   const sortedClips = [...clips].sort((a, b) => (a.order ?? a.timestamp) - (b.order ?? b.timestamp));
   const pinnedClips = sortedClips.filter(clip => clip.pinned);
   const recentClips = sortedClips
@@ -21,8 +23,8 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
     .sort((a, b) => b.timestamp - a.timestamp);
   
   // For pinned clips drag-and-drop
-  const dragItem = useRef<number | null>(null);
-  const dragOverItem = useRef<number | null>(null);
+  const dragItem = useRef<string | null>(null);
+  const dragOverItem = useRef<string | null>(null);
   
   // For auto-scrolling carousel to left on new clip
   const carouselRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -36,12 +38,12 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
     });
   }, [clips]);
 
-  const handleDragStart = useCallback((index: number) => {
-    dragItem.current = index;
+  const handleDragStart = useCallback((clipId: string) => {
+    dragItem.current = clipId;
   }, []);
 
-  const handleDragEnter = useCallback((index: number) => {
-    dragOverItem.current = index;
+  const handleDragEnter = useCallback((clipId: string) => {
+    dragOverItem.current = clipId;
   }, []);
 
   const handleDragEnd = useCallback(() => {
@@ -52,31 +54,29 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
     dragOverItem.current = null;
   }, [onReorder]);
 
-  const getPinnedIndex = (clipId: string) => pinnedClips.findIndex((item) => item.id === clipId);
-
   // For carousel items drag-and-drop
   const [carouselDragState, setCarouselDragState] = useState<{
     type: string;
-    dragIndex: number | null;
-    overIndex: number | null;
-  }>({ type: '', dragIndex: null, overIndex: null });
+    dragId: string | null;
+    overId: string | null;
+  }>({ type: '', dragId: null, overId: null });
 
-  const handleCarouselDragStart = useCallback((type: string, index: number) => {
-    setCarouselDragState({ type, dragIndex: index, overIndex: null });
+  const handleCarouselDragStart = useCallback((type: string, clipId: string) => {
+    setCarouselDragState({ type, dragId: clipId, overId: null });
   }, []);
 
-  const handleCarouselDragEnter = useCallback((type: string, index: number) => {
+  const handleCarouselDragEnter = useCallback((type: string, clipId: string) => {
     setCarouselDragState(prev => {
       // Keep the original type from dragStart, but update overIndex
-      return { ...prev, overIndex: index };
+      return { ...prev, overId: clipId };
     });
   }, []);
 
   const handleCarouselDragEnd = useCallback(() => {
-    if (carouselDragState.dragIndex !== null && carouselDragState.overIndex !== null && onReorderRecent) {
-      onReorderRecent(carouselDragState.type, carouselDragState.dragIndex, carouselDragState.overIndex);
+    if (carouselDragState.dragId !== null && carouselDragState.overId !== null && onReorderRecent) {
+      onReorderRecent(carouselDragState.type, carouselDragState.dragId, carouselDragState.overId);
     }
-    setCarouselDragState({ type: '', dragIndex: null, overIndex: null });
+    setCarouselDragState({ type: '', dragId: null, overId: null });
   }, [carouselDragState, onReorderRecent]);
 
   const renderClipList = (clipList: Clip[], isPinned: boolean = false) => {
@@ -96,13 +96,12 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
             </div>
           )}
           {clipList.map((clip) => {
-            const pinnedIndex = getPinnedIndex(clip.id);
             return (
               <div
                 key={clip.id}
                 draggable
-                onDragStart={() => handleDragStart(pinnedIndex)}
-                onDragEnter={() => handleDragEnter(pinnedIndex)}
+                onDragStart={() => handleDragStart(clip.id)}
+                onDragEnter={() => handleDragEnter(clip.id)}
                 onDragEnd={handleDragEnd}
                 onDragOver={(e) => e.preventDefault()}
                 style={{ cursor: 'grab' }}
@@ -114,6 +113,8 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
                   onOpenImage={onOpenImage}
                   onOpenClip={onOpenClip}
                   onUpdateClip={onUpdateClip}
+                  selected={selectedClipIds.includes(clip.id)}
+                  onSelect={onSelectClip}
                 />
               </div>
             );
@@ -153,13 +154,13 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
             <div key={type} className="carousel-section">
               <h3 className="carousel-type-header">{typeLabels[type] || type} ({typeClips.length})</h3>
               <div className="carousel" ref={(el) => { carouselRefs.current[type] = el; }}>
-                {typeClips.map((clip, index) => (
+                {typeClips.map((clip) => (
                   <div
                     key={clip.id}
                     className="carousel-item"
                     draggable
-                    onDragStart={() => handleCarouselDragStart(type, index)}
-                    onDragEnter={() => handleCarouselDragEnter(type, index)}
+                    onDragStart={() => handleCarouselDragStart(type, clip.id)}
+                    onDragEnter={() => handleCarouselDragEnter(type, clip.id)}
                     onDragEnd={() => handleCarouselDragEnd()}
                     onDragOver={(e) => e.preventDefault()}
                     style={{ cursor: 'grab' }}
@@ -171,6 +172,8 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
                       onOpenImage={onOpenImage}
                       onOpenClip={onOpenClip}
                       onUpdateClip={onUpdateClip}
+                      selected={selectedClipIds.includes(clip.id)}
+                      onSelect={onSelectClip}
                       isCarousel={true}
                     />
                   </div>

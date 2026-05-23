@@ -5,6 +5,8 @@ export type ClipType = 'image' | 'html' | 'dataframe' | 'text';
 export interface ClipSource {
   notebookUri: string;
   cellId?: string;
+  cellIndex?: number;
+  codeHash?: string;
   executionCount?: number;
 }
 
@@ -98,6 +100,7 @@ export type WebviewMessageType =
   | 'openClip'
   | 'reorderRecentClips'
   | 'updateClip';
+// Additional webview message payload keys are defined by individual handlers.
 
 /** Webviewメッセージ */
 export interface WebviewMessage {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Clip } from '../../../src/types';
+import { sanitizeHtml } from '../../../src/utils/htmlSanitizer';
 
 // VS Code APIの型定義
 declare global {
@@ -17,10 +18,12 @@ interface ClipCardProps {
   onOpenImage?: (clip: Clip) => void;
   onOpenClip?: (clip: Clip) => void;
   onUpdateClip?: (clipId: string, updates: { title?: string; memo?: string; tags?: string[] }) => void;
+  selected?: boolean;
+  onSelect?: (clipId: string, selected: boolean) => void;
   isCarousel?: boolean;
 }
 
-function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpdateClip, isCarousel }: ClipCardProps) {
+function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpdateClip, selected, onSelect, isCarousel }: ClipCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(clip.title || '');
   const [editMemo, setEditMemo] = useState(clip.memo || '');
@@ -88,7 +91,7 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
         }
         return <div>No image</div>;
       case 'html':
-        return <div dangerouslySetInnerHTML={{ __html: clip.content.htmlContent || '' }} />;
+        return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(clip.content.htmlContent || '') }} />;
       case 'dataframe':
       case 'text':
         return <pre>{clip.content.textContent || clip.content.htmlContent || ''}</pre>;
@@ -102,9 +105,34 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
       window.vscode.postMessage({
         type: 'jumpToCell',
         notebookUri: clip.source.notebookUri,
-        cellId: clip.source.cellId
+        cellId: clip.source.cellId,
+        clip
       });
     }
+  };
+
+  const getNotebookName = () => {
+    if (!clip.source.notebookUri) {
+      return '';
+    }
+    const decoded = decodeURIComponent(clip.source.notebookUri);
+    return decoded.split('/').pop() || decoded;
+  };
+
+  const getDimensions = () => {
+    const dimensions = clip.metadata?.dimensions;
+    return dimensions ? `${dimensions.width}x${dimensions.height}` : '';
+  };
+
+  const getFileSize = () => {
+    const fileSize = clip.metadata?.fileSize;
+    if (!fileSize) {
+      return '';
+    }
+    if (fileSize >= 1024 * 1024) {
+      return `${(fileSize / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return `${Math.ceil(fileSize / 1024)} KB`;
   };
 
   if (isEditing) {
@@ -153,10 +181,31 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
   }
 
   return (
-    <div className={`clip-card ${clip.pinned ? 'pinned' : ''}`} onClick={handleClick}>
+    <div className={`clip-card ${clip.pinned ? 'pinned' : ''}`}>
       <div className="clip-header">
         <span className="drag-handle" style={{ cursor: 'grab', marginRight: '4px', fontSize: '14px' }}>☰</span>
         <div className="clip-actions">
+          <label className="select-clip" title="Select for export">
+            <input
+              type="checkbox"
+              checked={Boolean(selected)}
+              onChange={(event) => {
+                event.stopPropagation();
+                onSelect?.(clip.id, event.target.checked);
+              }}
+            />
+          </label>
+          <button
+            className="icon-button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleClick();
+            }}
+            title="Jump to Source"
+            disabled={!clip.source.notebookUri || !clip.source.cellId}
+          >
+            <span className="codicon codicon-go-to-file"></span>
+          </button>
           <button
             className="icon-button"
             onClick={(event) => {
@@ -218,6 +267,9 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
       
       <div className="clip-footer">
         <span className="clip-time">{formatDate(clip.timestamp)}</span>
+        <span className="clip-source" title={clip.source.notebookUri}>
+          {[getNotebookName(), getDimensions(), getFileSize()].filter(Boolean).join(' | ')}
+        </span>
       </div>
     </div>
   );

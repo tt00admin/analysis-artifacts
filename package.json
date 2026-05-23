@@ -6,6 +6,7 @@
   "version": "1.0.3",
   "publisher": "tt00",
   "license": "MIT",
+  "icon": "resources/icon.png",
   "keywords": [
     "data-science",
     "notebook",
@@ -46,7 +47,7 @@
         {
           "id": "datadeck",
           "title": "DataDeck",
-          "icon": "docs/images/DataDeck-icon.png"
+          "icon": "resources/icon.svg"
         }
       ]
     },
@@ -93,15 +94,16 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build",
+    "clean": "node -e \"const fs=require('fs'); for (const path of ['out']) fs.rmSync(path, { recursive: true, force: true });\"",
     "compile": "tsc -p ./tsconfig.json",
     "watch": "tsc -watch -p ./tsconfig.json",
     "webview:dev": "cd webview && npm run dev",
     "webview:build": "cd webview && npm run build",
     "test": "jest",
-    "build": "npm run compile && npm run webview:build",
-    "package": "npm run build && npx vsce package",
-    "publish": "npm run build && npx vsce publish"
+    "build": "npm run clean && npm run compile && npm run webview:build",
+    "package": "npx vsce package",
+    "publish": "npx vsce publish"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
@@ -112,7 +114,6 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@types/uuid": "^10.0.0",
     "uuid": "^14.0.0"
   }
 }

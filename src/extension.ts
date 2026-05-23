@@ -40,7 +40,10 @@ export function activate(context: vscode.ExtensionContext) {
           filters: { 'Markdown': ['md'] }
         });
         if (outputUri) {
-          await MarkdownGenerator.generateMarkdown(deck.clips, outputUri.fsPath);
+          await MarkdownGenerator.generateMarkdown(deck.clips, outputUri.fsPath, {
+            copyImageAssets: true,
+            resolveImagePath: (imagePath) => storageService.getImageFsPath(imagePath)
+          });
           vscode.window.showInformationMessage(`Markdownをエクスポートしました: ${outputUri.fsPath}`);
         }
       } catch (error) {
@@ -49,9 +52,16 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const clearDeckCommand = vscode.commands.registerCommand('datadeck.clearDeck', async () => {
-      const deck = await storageService.loadDeck();
-      deck.clips = [];
-      await storageService.saveDeck(deck);
+      const confirm = await vscode.window.showWarningMessage(
+        'DataDeckのすべてのクリップと保存画像を削除します。この操作は元に戻せません。',
+        { modal: true },
+        '削除'
+      );
+      if (confirm !== '削除') {
+        return;
+      }
+      await storageService.clearDeck(true);
+      await sidebarProvider.refreshDeck();
       vscode.window.showInformationMessage('すべてのクリップを削除しました');
     });
 
