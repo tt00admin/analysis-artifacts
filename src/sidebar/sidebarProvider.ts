@@ -52,7 +52,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     _token: vscode.CancellationToken
   ) {
     try {
-      console.log('DataDeck: Resolving webview view...');
+      console.log('Analysis-Artifacts: Resolving webview view...');
       this._view = webviewView;
 
       webviewView.webview.options = {
@@ -65,9 +65,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       };
 
       const html = this.webviewHelpers.getHtmlForWebview(webviewView.webview, this._extensionUri);
-      console.log('DataDeck: Webview HTML generated, length:', html.length);
+      console.log('Analysis-Artifacts: Webview HTML generated, length:', html.length);
       webviewView.webview.html = html;
-      console.log('DataDeck: Webview HTML set successfully');
+      console.log('Analysis-Artifacts: Webview HTML set successfully');
 
       webviewView.webview.onDidReceiveMessage(async (message) => {
         await this._handleMessage(message);
@@ -79,9 +79,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
       });
 
-      console.log('DataDeck: Webview view resolved successfully');
+      console.log('Analysis-Artifacts: Webview view resolved successfully');
     } catch (error) {
-      console.error('DataDeck: Error in resolveWebviewView:', error);
+      console.error('Analysis-Artifacts: Error in resolveWebviewView:', error);
       throw error;
     }
   }
@@ -157,7 +157,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      vscode.window.showErrorMessage(`DataDeck operation failed: ${errorMessage}`);
+      vscode.window.showErrorMessage(`Analysis-Artifacts operation failed: ${errorMessage}`);
       this._view.webview.postMessage({ type: 'error', message: errorMessage });
       await this.refreshDeck();
     }
@@ -202,7 +202,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         return;
       }
       const outputUri = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file('datadeck-export.md'),
+        defaultUri: vscode.Uri.file('analysis-artifacts-export.md'),
         filters: { 'Markdown': ['md'] }
       });
       if (outputUri) {
@@ -226,7 +226,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         return;
       }
       const outputUri = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file('datadeck-export.md'),
+        defaultUri: vscode.Uri.file('analysis-artifacts-export.md'),
         filters: { 'Markdown': ['md'] }
       });
       if (outputUri) {

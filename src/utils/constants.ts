@@ -13,7 +13,7 @@ export const DEFAULT_SETTINGS = {
 };
 
 /** ストレージパス */
-export const STORAGE_DIR = '.vscode/datadeck';
+export const STORAGE_DIR = '.vscode/analysis-artifacts';
 export const CLIPS_FILENAME = 'clips.json';
 export const IMAGES_DIR = 'images';
 
@@ -61,9 +61,9 @@ export const EXTENSION_TO_MIME: Record<string, string> = {
 
 /** コマンドID */
 export const COMMANDS = {
-  CLIP_OUTPUT: 'datadeck.clipOutput',
-  EXPORT_MARKDOWN: 'datadeck.exportMarkdown',
-  CLEAR_DECK: 'datadeck.clearDeck',
+  CLIP_OUTPUT: 'analysis-artifacts.clipOutput',
+  EXPORT_MARKDOWN: 'analysis-artifacts.exportMarkdown',
+  CLEAR_DECK: 'analysis-artifacts.clearDeck',
 } as const;
 
 /** Webviewメッセージタイプ */

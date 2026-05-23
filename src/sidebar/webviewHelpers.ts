@@ -52,7 +52,7 @@ export class WebviewHelpers {
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; img-src ${webview.cspSource} https: data:; script-src 'nonce-${nonce}' ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline';">
         <link href="${codiconsUri}" rel="stylesheet">
         <link href="${styleUri}" rel="stylesheet">
-        <title>DataDeck</title>
+        <title>Analysis-Artifacts</title>
       </head>
       <body>
         <div id="root"></div>

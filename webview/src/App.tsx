@@ -41,7 +41,7 @@ function App() {
         setErrorMessage('');
       }
       if (message.type === 'error') {
-        setErrorMessage(message.message || 'DataDeck operation failed.');
+        setErrorMessage(message.message || 'Analysis-Artifacts operation failed.');
       }
     };
     window.addEventListener('message', handler);
@@ -160,7 +160,7 @@ function App() {
   }, []);
 
   if (!deck) {
-    return <div className="loading-state">Loading DataDeck...</div>;
+    return <div className="loading-state">Loading Analysis-Artifacts...</div>;
   }
 
   const totalClips = deck.clips.length;

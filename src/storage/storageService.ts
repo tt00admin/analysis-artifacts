@@ -14,7 +14,7 @@ export class StorageService {
   constructor(private context: vscode.ExtensionContext) {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (workspaceFolder) {
-      this.storagePath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'datadeck');
+      this.storagePath = path.join(workspaceFolder.uri.fsPath, '.vscode', 'analysis-artifacts');
       this.clipsJsonPath = path.join(this.storagePath, 'clips.json');
       this.imagesPath = path.join(this.storagePath, 'images');
     } else {
@@ -22,7 +22,7 @@ export class StorageService {
       this.clipsJsonPath = '';
       this.imagesPath = path.join(this.storagePath, 'images');
       this.clipsJsonPath = path.join(this.storagePath, 'clips.json');
-      console.warn('No workspace folder found. DataDeck will use global extension storage.');
+      console.warn('No workspace folder found. Analysis-Artifacts will use global extension storage.');
     }
   }
 
@@ -74,7 +74,7 @@ export class StorageService {
         const recoveredDeck = this.createInitialDeck();
         await this.backupCorruptDeck();
         await this.saveDeck(recoveredDeck);
-        vscode.window.showWarningMessage('DataDeck storage was corrupt and has been reset. A backup of the corrupt file was kept in .vscode/datadeck/.');
+        vscode.window.showWarningMessage('Analysis-Artifacts storage was corrupt and has been reset. A backup of the corrupt file was kept in .vscode/analysis-artifacts/.');
         return recoveredDeck;
       }
 
@@ -229,7 +229,7 @@ export class StorageService {
       await fs.rename(this.clipsJsonPath, backupPath);
     } catch (error) {
       if (!this.isNotFoundError(error)) {
-        console.error('Failed to back up corrupt DataDeck storage:', error);
+        console.error('Failed to back up corrupt Analysis-Artifacts storage:', error);
       }
     }
   }

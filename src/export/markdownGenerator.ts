@@ -10,7 +10,7 @@ interface MarkdownOptions {
 export class MarkdownGenerator {
   // クリップをMarkdown形式に変換
   static async generateMarkdown(clips: Clip[], outputPath?: string, options: MarkdownOptions = {}): Promise<string> {
-    let markdown = '# DataDeck Export\n\n';
+    let markdown = '# Analysis-Artifacts Export\n\n';
     markdown += `Exported at: ${new Date().toLocaleString()}\n\n`;
     markdown += `---\n\n`;
 

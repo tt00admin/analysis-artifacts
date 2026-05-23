@@ -6,37 +6,33 @@ import { ClipboardService } from './clipboard/clipboardService.js';
 import { MarkdownGenerator } from './export/markdownGenerator.js';
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('DataDeck extension activating...');
+  console.log('Analysis-Artifacts extension activating...');
   
   try {
-    // サービス初期化
     const storageService = new StorageService(context);
     const clipboardService = new ClipboardService(context, storageService);
     const sidebarProvider = new SidebarProvider(context.extensionUri, storageService, clipboardService);
 
-    // .gitignore推奨設定のチェック
     checkGitignoreRecommendation();
 
-    // WebviewProvider登録
-    const disposable = vscode.window.registerWebviewViewProvider('datadeck.sidebar', sidebarProvider);
+    const disposable = vscode.window.registerWebviewViewProvider('analysis-artifacts.sidebar', sidebarProvider);
     context.subscriptions.push(disposable);
-    console.log('DataDeck: WebviewViewProvider registered successfully');
+    console.log('Analysis-Artifacts: WebviewViewProvider registered successfully');
 
-    // コマンド登録
-    const clipOutputCommand = vscode.commands.registerCommand('datadeck.clipOutput', async (cell?: vscode.NotebookCell) => {
+    const clipOutputCommand = vscode.commands.registerCommand('analysis-artifacts.clipOutput', async (cell?: vscode.NotebookCell) => {
       await clipboardService.clipActiveCell(cell);
       await sidebarProvider.refreshDeck();
     });
 
-    const exportMarkdownCommand = vscode.commands.registerCommand('datadeck.exportMarkdown', async () => {
+    const exportMarkdownCommand = vscode.commands.registerCommand('analysis-artifacts.exportMarkdown', async () => {
       try {
         const deck = await storageService.loadDeck();
         if (deck.clips.length === 0) {
-          vscode.window.showInformationMessage('エクスポートするクリップがありません');
+          vscode.window.showInformationMessage('There are no clips to export.');
           return;
         }
         const outputUri = await vscode.window.showSaveDialog({
-          defaultUri: vscode.Uri.file('datadeck-export.md'),
+          defaultUri: vscode.Uri.file('analysis-artifacts-export.md'),
           filters: { 'Markdown': ['md'] }
         });
         if (outputUri) {
@@ -44,31 +40,31 @@ export function activate(context: vscode.ExtensionContext) {
             copyImageAssets: true,
             resolveImagePath: (imagePath) => storageService.getImageFsPath(imagePath)
           });
-          vscode.window.showInformationMessage(`Markdownをエクスポートしました: ${outputUri.fsPath}`);
+          vscode.window.showInformationMessage(`Markdown exported: ${outputUri.fsPath}`);
         }
       } catch (error) {
-        vscode.window.showErrorMessage(`エクスポートに失敗しました: ${error}`);
+        vscode.window.showErrorMessage(`Export failed: ${error}`);
       }
     });
 
-    const clearDeckCommand = vscode.commands.registerCommand('datadeck.clearDeck', async () => {
+    const clearDeckCommand = vscode.commands.registerCommand('analysis-artifacts.clearDeck', async () => {
       const confirm = await vscode.window.showWarningMessage(
-        'DataDeckのすべてのクリップと保存画像を削除します。この操作は元に戻せません。',
+        'Delete all Analysis-Artifacts clips and stored image assets? This action cannot be undone.',
         { modal: true },
-        '削除'
+        'Delete'
       );
-      if (confirm !== '削除') {
+      if (confirm !== 'Delete') {
         return;
       }
       await storageService.clearDeck(true);
       await sidebarProvider.refreshDeck();
-      vscode.window.showInformationMessage('すべてのクリップを削除しました');
+      vscode.window.showInformationMessage('All clips were deleted.');
     });
 
     context.subscriptions.push(clipOutputCommand, exportMarkdownCommand, clearDeckCommand);
     
   } catch (error) {
-    console.error('DataDeck activation error:', error);
+    console.error('Analysis-Artifacts activation error:', error);
     throw error;
   }
 }
@@ -83,7 +79,6 @@ async function checkGitignoreRecommendation() {
   const gitignoreUri = vscode.Uri.joinPath(rootUri, '.gitignore');
 
   try {
-    // .gitignoreの存在チェック
     const gitignoreExists = await vscode.workspace.fs.stat(gitignoreUri).then(() => true, () => false);
     let gitignoreContent = '';
 
@@ -92,23 +87,22 @@ async function checkGitignoreRecommendation() {
       gitignoreContent = Buffer.from(data).toString('utf8');
     }
 
-    // .vscode/datadeck/が含まれているかチェック
-    if (!gitignoreContent.includes('.vscode/datadeck/')) {
+    if (!gitignoreContent.includes('.vscode/analysis-artifacts/')) {
       const action = await vscode.window.showInformationMessage(
-        'DataDeckの保存データをGitから除外するため、.gitignoreに「.vscode/datadeck/」を追加することを推奨します。',
-        '今すぐ追加',
-        '後で'
+        'Add ".vscode/analysis-artifacts/" to .gitignore so saved Analysis-Artifacts data is not committed?',
+        'Add Now',
+        'Later'
       );
 
-      if (action === '今すぐ追加') {
-        const newLine = '.vscode/datadeck/\n';
+      if (action === 'Add Now') {
+        const newLine = '.vscode/analysis-artifacts/\n';
         const newContent = gitignoreExists ? gitignoreContent + newLine : newLine;
         await vscode.workspace.fs.writeFile(gitignoreUri, Buffer.from(newContent, 'utf8'));
-        vscode.window.showInformationMessage('.gitignoreを更新しました。');
+        vscode.window.showInformationMessage('.gitignore was updated.');
       }
     }
   } catch (error) {
-    // エラーは無視（ファイルアクセス権限等）
+    // Ignore workspace file access issues.
   }
 }
 

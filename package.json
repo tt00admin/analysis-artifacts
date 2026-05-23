@@ -1,8 +1,8 @@
 {
-  "name": "tt-datadeck",
+  "name": "analysis-artifacts",
   "type": "module",
-  "displayName": "DataDeck",
-  "description": "Save, organize, search, and export important outputs from Jupyter notebooks in VS Code.",
+  "displayName": "Analysis-Artifacts",
+  "description": "Save, organize, search, and export important analysis outputs from Jupyter notebooks in VS Code.",
   "version": "0.0.1",
   "publisher": "tt00",
   "license": "MIT",
@@ -21,11 +21,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/datadeck/datadeck.git"
+    "url": "https://github.com/datadeck/analysis-artifacts.git"
   },
-  "homepage": "https://github.com/datadeck/datadeck#readme",
+  "homepage": "https://github.com/datadeck/analysis-artifacts#readme",
   "bugs": {
-    "url": "https://github.com/datadeck/datadeck/issues"
+    "url": "https://github.com/datadeck/analysis-artifacts/issues"
   },
   "galleryBanner": {
     "color": "#1e1e1e",
@@ -35,50 +35,50 @@
     "vscode": "^1.80.0"
   },
   "activationEvents": [
-    "onView:datadeck.sidebar",
-    "onCommand:datadeck.clipOutput",
-    "onCommand:datadeck.exportMarkdown",
-    "onCommand:datadeck.clearDeck"
+    "onView:analysis-artifacts.sidebar",
+    "onCommand:analysis-artifacts.clipOutput",
+    "onCommand:analysis-artifacts.exportMarkdown",
+    "onCommand:analysis-artifacts.clearDeck"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "datadeck",
-          "title": "DataDeck",
+          "id": "analysis-artifacts",
+          "title": "Analysis-Artifacts",
           "icon": "resources/icon.svg"
         }
       ]
     },
     "views": {
-      "datadeck": [
+      "analysis-artifacts": [
         {
-          "id": "datadeck.sidebar",
-          "name": "DataDeck",
+          "id": "analysis-artifacts.sidebar",
+          "name": "Analysis-Artifacts",
           "type": "webview"
         }
       ]
     },
     "commands": [
       {
-        "command": "datadeck.clipOutput",
+        "command": "analysis-artifacts.clipOutput",
         "title": "Add to Deck",
-        "category": "DataDeck",
+        "category": "Analysis-Artifacts",
         "icon": "resources/add-to-deck.svg"
       },
       {
-        "command": "datadeck.exportMarkdown",
+        "command": "analysis-artifacts.exportMarkdown",
         "title": "Export to Markdown"
       },
       {
-        "command": "datadeck.clearDeck",
+        "command": "analysis-artifacts.clearDeck",
         "title": "Clear All Clips"
       }
     ],
     "keybindings": [
       {
-        "command": "datadeck.clipOutput",
+        "command": "analysis-artifacts.clipOutput",
         "key": "ctrl+shift+d",
         "mac": "cmd+shift+d"
       }
@@ -86,7 +86,7 @@
     "menus": {
       "notebook/cell/title": [
         {
-          "command": "datadeck.clipOutput",
+          "command": "analysis-artifacts.clipOutput",
           "when": "notebookType == 'jupyter-notebook' || resourceExtname == '.ipynb'",
           "group": "inline@1"
         }

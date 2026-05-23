@@ -29,7 +29,7 @@ export class HtmlGenerator {
         return `<tr>${cells}</tr>`;
       }).join('');
 
-      return `<table class="datadeck-table"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+      return `<table class="analysis-artifacts-table"><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
     } catch {
       return `<pre>${escapeHtml(json)}</pre>`;
     }

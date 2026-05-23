@@ -67,7 +67,7 @@ export class NotebookAdapter implements INotebookAdapter {
           editorImpl.revealRange(range, vscode.NotebookEditorRevealType.InCenter);
         }
       } else {
-        vscode.window.showWarningMessage('DataDeck could not find the original notebook cell.');
+        vscode.window.showWarningMessage('Analysis-Artifacts could not find the original notebook cell.');
       }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to jump to cell: ${error}`);

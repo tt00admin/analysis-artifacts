@@ -25,6 +25,6 @@ plans/**
 trash/**
 jest.config.js
 tsconfig.json
-.vscode/datadeck/**
+.vscode/analysis-artifacts/**
 .DS_Store
 **/.DS_Store

@@ -21,7 +21,7 @@ function createImageClip(imagePath: string): Clip {
 
 describe('MarkdownGenerator', () => {
   test('copies image assets next to exported markdown', async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'datadeck-md-'));
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'analysis-artifacts-md-'));
     const sourceImage = path.join(tmpDir, 'source.png');
     const outputPath = path.join(tmpDir, 'report.md');
     await fs.writeFile(sourceImage, Buffer.from([1, 2, 3]));

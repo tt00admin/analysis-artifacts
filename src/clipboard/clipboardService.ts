@@ -69,7 +69,7 @@ export class ClipboardService {
       deck.clips.push(clip);
     });
 
-    vscode.window.showInformationMessage(`Clip saved: ${clip.id.slice(0, 8)}. Use Edit in DataDeck to add a title, memo, or tags.`);
+    vscode.window.showInformationMessage(`Clip saved: ${clip.id.slice(0, 8)}. Use Edit in Analysis-Artifacts to add a title, memo, or tags.`);
     return clip.id;
   }
 
