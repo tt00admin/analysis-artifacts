@@ -86,10 +86,6 @@ function App() {
   }, []);
 
   const handleDelete = useCallback((clipId: string) => {
-    const confirmed = window.confirm('Delete this clip? This cannot be undone.');
-    if (!confirmed) {
-      return;
-    }
     if (window.vscode) {
       window.vscode.postMessage({ type: 'deleteClip', clipId });
     }

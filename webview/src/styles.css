@@ -228,6 +228,10 @@ h1 {
   color: var(--vscode-errorForeground, var(--vscode-menu-foreground)) !important;
 }
 
+.danger-icon-button {
+  color: var(--vscode-errorForeground, var(--vscode-button-secondaryForeground));
+}
+
 .top-section {
   display: grid;
   grid-template-columns: 1fr auto auto;

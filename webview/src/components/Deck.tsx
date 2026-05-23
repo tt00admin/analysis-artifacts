@@ -38,7 +38,15 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
     });
   }, [clips]);
 
-  const handleDragStart = useCallback((clipId: string) => {
+  const isInteractiveElement = (event: React.DragEvent) => {
+    return Boolean((event.target as HTMLElement).closest('button, input, textarea, select, label, .clip-actions'));
+  };
+
+  const handleDragStart = useCallback((event: React.DragEvent, clipId: string) => {
+    if (isInteractiveElement(event)) {
+      event.preventDefault();
+      return;
+    }
     dragItem.current = clipId;
   }, []);
 
@@ -61,7 +69,11 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
     overId: string | null;
   }>({ type: '', dragId: null, overId: null });
 
-  const handleCarouselDragStart = useCallback((type: string, clipId: string) => {
+  const handleCarouselDragStart = useCallback((event: React.DragEvent, type: string, clipId: string) => {
+    if (isInteractiveElement(event)) {
+      event.preventDefault();
+      return;
+    }
     setCarouselDragState({ type, dragId: clipId, overId: null });
   }, []);
 
@@ -100,7 +112,7 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
               <div
                 key={clip.id}
                 draggable
-                onDragStart={() => handleDragStart(clip.id)}
+                onDragStart={(event) => handleDragStart(event, clip.id)}
                 onDragEnter={() => handleDragEnter(clip.id)}
                 onDragEnd={handleDragEnd}
                 onDragOver={(e) => e.preventDefault()}
@@ -159,7 +171,7 @@ function Deck({ clips, onDelete, onTogglePin, onReorder, onOpenImage, onOpenClip
                     key={clip.id}
                     className="carousel-item"
                     draggable
-                    onDragStart={() => handleCarouselDragStart(type, clip.id)}
+                    onDragStart={(event) => handleCarouselDragStart(event, type, clip.id)}
                     onDragEnter={() => handleCarouselDragEnter(type, clip.id)}
                     onDragEnd={() => handleCarouselDragEnd()}
                     onDragOver={(e) => e.preventDefault()}

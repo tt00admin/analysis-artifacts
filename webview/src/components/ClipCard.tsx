@@ -62,6 +62,16 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
     setIsEditing(false);
   };
 
+  const stopCardInteraction = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDeleteClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    stopCardInteraction(event);
+    onDelete(clip.id);
+  };
+
   const renderContent = () => {
     switch (clip.type) {
       case 'image':
@@ -198,8 +208,13 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
             />
           </label>
         </div>
-        <div className="clip-actions">
+        <div
+          className="clip-actions"
+          onMouseDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           <button
+            type="button"
             className="icon-button"
             onClick={(event) => {
               event.stopPropagation();
@@ -211,6 +226,7 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
             <span className="codicon codicon-go-to-file"></span>
           </button>
           <button
+            type="button"
             className="icon-button"
             onClick={(event) => {
               event.stopPropagation();
@@ -221,6 +237,7 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
             <span className={`codicon ${clip.pinned ? 'codicon-pinned' : 'codicon-pin'}`}></span>
           </button>
           <button
+            type="button"
             className="icon-button"
             onClick={(event) => {
               event.stopPropagation();
@@ -230,21 +247,25 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
           >
             <span className="codicon codicon-unfold"></span>
           </button>
-          <details className="actions-menu clip-menu" onClick={(event) => event.stopPropagation()}>
-            <summary className="icon-button" title="Clip actions" aria-label="Clip actions">
-              <span className="codicon codicon-kebab-vertical"></span>
-            </summary>
-            <div className="menu-panel">
-              <button onClick={handleEditClick}>
-                <span className="codicon codicon-edit"></span>
-                <span>Edit details</span>
-              </button>
-              <button className="danger-action" onClick={() => onDelete(clip.id)}>
-                <span className="codicon codicon-trash"></span>
-                <span>Delete clip</span>
-              </button>
-            </div>
-          </details>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleEditClick();
+            }}
+            title="Edit details"
+          >
+            <span className="codicon codicon-edit"></span>
+          </button>
+          <button
+            type="button"
+            className="icon-button danger-icon-button"
+            onClick={handleDeleteClick}
+            title="Delete clip"
+          >
+            <span className="codicon codicon-trash"></span>
+          </button>
         </div>
       </div>
       
