@@ -260,21 +260,30 @@ h1 {
   margin-bottom: 12px;
 }
 
-.action-row {
+.filter-row,
+.toolbar-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
 }
 
-.action-row input[type="text"] {
+.filter-row {
+  margin-bottom: 8px;
+}
+
+.filter-row input[type="text"] {
   flex: 1;
   min-width: 120px;
 }
 
-.action-row select {
+.filter-row select {
   width: auto;
   min-width: 100px;
+}
+
+.toolbar-row {
+  justify-content: flex-start;
 }
 
 .toolbar-actions {

@@ -210,6 +210,26 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
           >
             <span className="codicon codicon-go-to-file"></span>
           </button>
+          <button
+            className="icon-button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onTogglePin(clip.id);
+            }}
+            title={clip.pinned ? 'Unpin clip' : 'Pin clip'}
+          >
+            <span className={`codicon ${clip.pinned ? 'codicon-pinned' : 'codicon-pin'}`}></span>
+          </button>
+          <button
+            className="icon-button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenClip?.(clip);
+            }}
+            title="Expand preview"
+          >
+            <span className="codicon codicon-unfold"></span>
+          </button>
           <details className="actions-menu clip-menu" onClick={(event) => event.stopPropagation()}>
             <summary className="icon-button" title="Clip actions" aria-label="Clip actions">
               <span className="codicon codicon-kebab-vertical"></span>
@@ -218,14 +238,6 @@ function ClipCard({ clip, onDelete, onTogglePin, onOpenImage, onOpenClip, onUpda
               <button onClick={handleEditClick}>
                 <span className="codicon codicon-edit"></span>
                 <span>Edit details</span>
-              </button>
-              <button onClick={() => onTogglePin(clip.id)}>
-                <span className={`codicon ${clip.pinned ? 'codicon-pinned' : 'codicon-pin'}`}></span>
-                <span>{clip.pinned ? 'Unpin clip' : 'Pin clip'}</span>
-              </button>
-              <button onClick={() => onOpenClip?.(clip)}>
-                <span className="codicon codicon-unfold"></span>
-                <span>Expand preview</span>
               </button>
               <button className="danger-action" onClick={() => onDelete(clip.id)}>
                 <span className="codicon codicon-trash"></span>

@@ -209,9 +209,9 @@ function App() {
 
       </div>
 
-      {/* 2段目：検索、タイプ、アイコンボタン */}
+      {/* 2段目：検索、タイプ、タグ */}
       <div className="bottom-section">
-        <div className="action-row">
+        <div className="filter-row">
           <input
             type="text"
             placeholder="Search..."
@@ -240,6 +240,8 @@ function App() {
               <option key={tag} value={tag}>{tag}</option>
             ))}
           </select>
+        </div>
+        <div className="toolbar-row">
           <button
             className="primary-button action-button"
             onClick={handleClip}
